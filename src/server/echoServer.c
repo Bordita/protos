@@ -3,12 +3,13 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include "../shared/selector.h"
+#include "selectorHandle.h"
 
 #define ERROR_CODE 1 // @TODO Handle different error codes
 
 #define MAX_CONNECTIONS 512
 
-#define PORT 4321 // @TODO Remove
+#define PORT 1080 // @TODO Remove
 
 
 /**
@@ -88,11 +89,39 @@ int main(){
         return ERROR_CODE;
     }
 
+    fd_handler handle_passive_socket = {
+        .handle_read = handle_read,
+        .handle_write = NULL,
+        .handle_close = NULL,
+        .handle_block = NULL
+    };
+
+    ss = selector_register(selector, socks5socket, &handle_passive_socket, OP_READ, NULL);
+    if(ss != SELECTOR_SUCCESS){
+        printf("Error selecting: %s\n", selector_error(ss));
+        close(socks5socket);
+        selector_destroy(selector);
+        selector_close();
+        return ERROR_CODE;
+    }
+
+    while(1){
+        ss = selector_select(selector);
+
+        if(ss != SELECTOR_SUCCESS){
+            printf("Error selecting: %s\n", selector_error(ss));
+            close(socks5socket);
+            selector_destroy(selector);
+            selector_close();
+            return ERROR_CODE;
+        }
+    }
     /**
      *  @TODO
      *  Handle server behaviour
      */
 
+     
     // Cleaning resources...
     selector_destroy(selector);
     selector_close();
