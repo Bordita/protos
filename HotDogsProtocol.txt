@@ -1,0 +1,82 @@
+                    HotDogs Protocol Version 1.0
+
+1. Introduction
+
+1.1. Considerations
+
+2. Authentication
+
+3. Requests
+
+4. Responses
+
+5. Examples
+
+6. Authors
+
+The HotDogs Protocol was developed by
+    + Agustin Ronda         -   64507
+    + Tomás Borda           -   64517
+    + Lautaro Paletta       -   64499
+    + Nicolás Arancibia     -   64481 
+
+
+## Detalles del protocolo
+- Binario
+- Orientado a conexión (TCP)
+
+## Funcionalidades
+- Autenticación usuario:contraseña
+
+(Métricas)
+- Consultar cantidad de conexiones históricas
+- Consultar cantidad de conexiones concurrentes
+- Consultar cantidad de bytes transferidos
+- Otras métricas ...
+
+- Listar usuarios
+- Listar logs de conexiones                         
+- Configurar tamaños de buffer
+- Configurar timeouts
+- Agregar y remover usuarios
+
+## Flujo
+
+### Handshake
+- Cliente envía versión, ulen, uname, plen, pass
+    +----+------+----------+------+----------+
+    |VER | ULEN |  UNAME   | PLEN |   PASS   |
+    +----+------+----------+------+----------+
+    | 1  |  1   | 1 to 255 |   1  | 1 to 255 |
+    +----+------+------+---------------------+
+- Servidor responde versión y status
+
+    VER (1)     STATUS (1)
+
+### Operaciones
+- El cliente puede hacer GET o PUT indicándolo como METHOD X'00' (GET) o X'01' (PUT)
+- GET OPTIONS:
+    + Métricas                      X'00'
+    + Listar usurios                X'01'
+    + Listar logs                   X'02'
+- PUT OPTIONS
+    + Configurar tamaño de buffer   X'00'
+    + Configurar timeout            X'01'
+    + Agregar usuario               X'02'
+    + Remover usuario               X'03'
+
+#### GET
+- El servidor responde METHOD (1), OPTIONS (1), STATUS, DLEN, DATA
+
+#### PUT
+
+1. Tamaños de buffer:
+    - El cliente envía METHOD, OPTIONS, NEWBUFFSIZE
+2. Timeout:
+    - El cliente envía METHOD, OPTIONS, NEWTIMEOUT
+3. Agregar usuario
+    - El cliente envía METHOD, OPTIONS, ULEN, UNAME, PLEN, PASS
+4. Remover usuario
+    - El cliente envía METHOD, OPTIONS, ULEN, UNAME
+
+- El servidor responde METHOD, OPTIONS, STATUS (1)
