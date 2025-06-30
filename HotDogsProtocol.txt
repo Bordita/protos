@@ -1,82 +1,210 @@
-                    HotDogs Protocol Version 1.0
+                    🌭HotDogs Protocol Version 1.0🌭
 
 1. Introduction
 
-1.1. Considerations
+    The HotDogs Protocol Version 1.0 is a binary, TCP-based protocol designed for
+    the administration and monitoring of user activity and system metrics
+    of a server. It supports authentication, monitoring commands, and 
+    administrative operations like configuring buffers or managing users.
+
+Note:
+
+   Unless otherwise noted, the decimal numbers appearing in packet-format
+   diagrams represent the length of the corresponding field, in octets. 
+   Where a given octet must take on a specific value, the syntax X'hh' is
+   used to denote the value of the single octet in that field. 
+   When the word 'Variable' is used, it indicates that the corresponding 
+   field has a variable length defined either by an associated (one or two octet)
+   length field, or by a data type field.
 
 2. Authentication
 
+    Upon establishing a TCP connection, the client must perform an authentication
+    handshake using a binary structure:
+
+        +-----+------+----------+------+------------+
+        | VER | ULEN |  UNAME   | PLEN |   PASSWD   |
+        +-----+------+----------+------+------------+
+        |  1  |  1   | 1 to 255 |   1  |  1 to 255  |
+        +-----+------+------+-----------------------+
+
+    Where:
+        o   VER         Protocol version, currently X'01'.
+        o   ULEN        Length of username.
+        o   UNAME       Username.
+        o   PLEN        Length of password.
+        o   PASSWD      Password.
+
+    The server verifies the supplied UNAME and PASSWD, and sends the
+    following response:
+
+        +-----+-------------+
+        | VER | COOK_STATUS |
+        +-----+-------------+
+        |  1  |      1      |
+        +-----+-------------+
+    
+    A COOK_STATUS field of X'00' indicates success, that is WELL_COOKED.
+    If the server returns a `failure' (COOK_STATUS value other than X'00')
+    status, it MUST close the connection.
+
+    Other values defined in this version are:
+        o   X'01'      UNDERCOOKED             Invalid credentials.
+        o   X'02'      BURNT                   Unsupported version.
+        o   X'FF'      WHO_LET_BRO_COOK        Generic error.
+
 3. Requests
+
+    After successful authentication, the client may issue GET or PUT requests
+    using the following base format:
+
+        +--------+----------+
+        | METHOD | OPTIONS  |
+        +--------+----------+
+        |   1    |     1    |
+        +--------+----------+
+
+    The METHOD values defined in this version are:
+        o   X'00'       GET
+        o   X'01'       PUT
+
+    The values for the field options depend on the chosen method.
+
+3.1. GET Method
+
+    GET Requests are used to retrieve information from the server.
+
+    The values defined for OPTIONS in this version are:
+        o   X'00'       Server metrics
+        o   X'01'       List users
+        o   X'02'       List connection logs
+
+    Thereafter, the request only requires the METHOD and OPTIONS field.
+    No additional fields are needed.
+
+    The response follows the format described in Section 4.1.
+
+3.2. PUT Method
+
+    PUT Requests are used to manage server configurations, such as user
+    lists and buffers. 
+
+    The values defined for OPTIONS in this version are:
+        o   X'00'       Configure buffer size.
+        o   X'01'       Configure timeout.
+        o   X'02'       Add user.
+        o   X'03'       Remove user.
+
+    The response follows the format described in Section 4.2.
+
+    Depending on the value of OPTIONS, the request format varies.
+
+3.2.1. Configure buffer size
+
+    The request format for this option is as follows:
+
+    +--------+----------+-------------+
+    | METHOD | OPTIONS  | NEWBUFFSIZE |
+    +--------+----------+-------------+
+    |  0x01  |   0x00   |      2      |
+    +--------+----------+-------------+
+
+    Where NEWBUFFSIZE specifies the new size of the buffer.
+
+3.2.2. Configure timeout
+
+    The request format for this option is as follows:
+
+    +--------+----------+-------------+
+    | METHOD | OPTIONS  | NEWTIMEOUT  |
+    +--------+----------+-------------+
+    |  0x01  |   0x01   |      2      |
+    +--------+----------+-------------+
+
+    Where NEWTIMEOUT specifies the new timeout.
+
+3.2.3. Add user
+
+    The request format for this option is as follows:
+
+    +--------+----------+------+----------+------+------------+
+    | METHOD | OPTIONS  | ULEN |  UNAME   | PLEN |   PASSWD   |
+    +--------+----------+------+----------+------+------------+
+    |  0x01  |   0x02   |  1   |  1–255   |  1   |   1–255    |
+    +--------+----------+-----------------+------+------------+
+
+    Where ULEN, UNAME, PLEN and PASSWD fields have the same semantics
+    as in authentication handshake described in Section 2.
+
+3.2.4. Remove user
+
+    The request format for this option is as follows:
+
+    +--------+----------+------+----------+
+    | METHOD | OPTIONS  | ULEN |  UNAME   |
+    +--------+----------+------+----------+
+    |  0x01  |   0x03   |  1   |  1–255   |
+    +--------+----------+-----------------+
+
+    Where ULEN and UNAME fields have the same semantics as in authentication
+    handshake described in Section 2.
 
 4. Responses
 
+    The server returns a response that follows the next base format:
+
+    +--------+----------+-------------+
+    | METHOD | OPTIONS  | COOK_STATUS |
+    +--------+----------+-------------+
+    |    1   |    1     |      1      |
+    +--------+----------+-------------+
+
+    Where the METHOD and OPTIONS fields replicate their values in the request.
+    
+    The values defined in this version for COOK_STATUS are:
+        o   X'00'   WELL_COOKED         Operation successful.
+        o   X'01'   NO_BUN_FOUND        Invalid method.
+        o   X'02'   BAD_TOPPING         Invalid option.
+        o   X'03'   NO_SUCH_BUN         User not found.
+        o   X'FF'   WHO_LET_BRO_COOK    Generic error.
+
+4.1. GET Responses
+
+    GET Requests return a data payload. The response has the following format:
+
+    +--------+----------+-------------+--------+-----------+
+    | METHOD | OPTIONS  | COOK_STATUS | DLEN   |   DATA    |
+    +--------+----------+-------------+--------+-----------+
+    |    1   |    1     |      1      |   2    |  Variable |
+    +--------+----------+-------------+--------+-----------+    
+
+    Where DLEN describes the length of the DATA field.
+
+    METHOD, OPTIONS and COOK_STATUS have the values described in Section 4.
+
+4.2. PUT Responses
+
+    PUT requests involve client-initiated changes (e.g., configuration or user management).
+    Each request has a specific structure depending on the selected OPTIONS. 
+    In all cases, the server responds with a fixed-size confirmation message. This message
+    follows the base format described in Section 4.
+
 5. Examples
+
+    @TODO
 
 6. Authors
 
-The HotDogs Protocol was developed by
-    + Agustin Ronda         -   64507
-    + Tomás Borda           -   64517
-    + Lautaro Paletta       -   64499
-    + Nicolás Arancibia     -   64481 
+    The HotDogs Protocol was developed by
+        + Agustin Ronda         -   64507
+        + Tomás Borda           -   64517
+        + Lautaro Paletta       -   64499
+        + Nicolás Arancibia     -   64481 
 
 
-## Detalles del protocolo
-- Binario
-- Orientado a conexión (TCP)
 
-## Funcionalidades
-- Autenticación usuario:contraseña
+---
+Authors' note: No actual sausages were harmed in the making of this protocol.  
 
-(Métricas)
-- Consultar cantidad de conexiones históricas
-- Consultar cantidad de conexiones concurrentes
-- Consultar cantidad de bytes transferidos
-- Otras métricas ...
-
-- Listar usuarios
-- Listar logs de conexiones                         
-- Configurar tamaños de buffer
-- Configurar timeouts
-- Agregar y remover usuarios
-
-## Flujo
-
-### Handshake
-- Cliente envía versión, ulen, uname, plen, pass
-    +----+------+----------+------+----------+
-    |VER | ULEN |  UNAME   | PLEN |   PASS   |
-    +----+------+----------+------+----------+
-    | 1  |  1   | 1 to 255 |   1  | 1 to 255 |
-    +----+------+------+---------------------+
-- Servidor responde versión y status
-
-    VER (1)     STATUS (1)
-
-### Operaciones
-- El cliente puede hacer GET o PUT indicándolo como METHOD X'00' (GET) o X'01' (PUT)
-- GET OPTIONS:
-    + Métricas                      X'00'
-    + Listar usurios                X'01'
-    + Listar logs                   X'02'
-- PUT OPTIONS
-    + Configurar tamaño de buffer   X'00'
-    + Configurar timeout            X'01'
-    + Agregar usuario               X'02'
-    + Remover usuario               X'03'
-
-#### GET
-- El servidor responde METHOD (1), OPTIONS (1), STATUS, DLEN, DATA
-
-#### PUT
-
-1. Tamaños de buffer:
-    - El cliente envía METHOD, OPTIONS, NEWBUFFSIZE
-2. Timeout:
-    - El cliente envía METHOD, OPTIONS, NEWTIMEOUT
-3. Agregar usuario
-    - El cliente envía METHOD, OPTIONS, ULEN, UNAME, PLEN, PASS
-4. Remover usuario
-    - El cliente envía METHOD, OPTIONS, ULEN, UNAME
-
-- El servidor responde METHOD, OPTIONS, STATUS (1)
+RFC-HOTDOGS-0001 — June 2025 
+---
