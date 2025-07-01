@@ -12,12 +12,12 @@ static Metrics metrics = {
     .historic_connections = 0
 };
 
-void add_current_connection(){
+void add_current_connection(void){
     metrics.current_connections++;
     metrics.historic_connections++;
 }
 
-void remove_current_connection(){
+void remove_current_connection(void){
     if (metrics.current_connections > 0)
         metrics.current_connections--;
 } 
@@ -26,14 +26,14 @@ void add_transfered_bytes(int bytes){
     metrics.total_transfered_bytes += bytes;
 }
 
-int get_current_connections(){
+int get_current_connections(void){
     return metrics.current_connections;
 }    
 
-int get_transfered_bytes(){
+int get_transfered_bytes(void){
     return metrics.total_transfered_bytes;
 }
 
-int get_historic_connections(){
+int get_historic_connections(void){
     return metrics.historic_connections;
 }    
