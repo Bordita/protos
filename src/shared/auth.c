@@ -8,6 +8,8 @@ typedef struct UserList {
 
 static UserList * users_list = NULL;
 
+UserList * create_user(const char *username, const char *password);
+
 int add_user(const char * username, const char * password) {
     // If the list is empty, create a new user and set it as the head of the list
     if (users_list == NULL){
@@ -75,7 +77,7 @@ int authenticate_user(const char *username, const char *password) {
     return -1; // User not found
 }
 
-void destroy_user_list() {
+void destroy_user_list(void) {
     UserList * current = users_list;
     UserList * next;
 
