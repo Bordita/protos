@@ -7,6 +7,7 @@ typedef struct UserList {
 } UserList;
 
 static UserList * users_list = NULL;
+bool auth_enabled = false;
 
 UserList * create_user(const char *username, const char *password);
 
@@ -100,6 +101,10 @@ UserList * create_user(const char *username, const char *password) {
     new_user->username = username;
     new_user->password = password;
     new_user->next = NULL;
-    
+    auth_enabled = true; 
     return new_user;
+}
+
+bool authentication_enabled(void) {
+    return auth_enabled;
 }
