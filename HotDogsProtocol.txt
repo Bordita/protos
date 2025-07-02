@@ -1,4 +1,4 @@
-                    🌭HotDogs Protocol Version 1.0🌭
+                    🌭 HotDogs Protocol Version 1.0 🌭
 
 1. Introduction
 
@@ -162,7 +162,7 @@ Note:
     Where the METHOD and OPTIONS fields replicate their values in the request.
     
     The values defined in this version for COOK_STATUS are:
-        o   X'00'   WELL_COOKED         Operation successful.
+        o   X'00'   SUCCESS             Operation successful.
         o   X'01'   NO_BUN_FOUND        Invalid method.
         o   X'02'   BAD_TOPPING         Invalid option.
         o   X'03'   NO_SUCH_BUN         User not found.

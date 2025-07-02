@@ -11,7 +11,6 @@
 
 #define PORT 1080 // @TODO Remove
 
-
 /**
  * 1. Set up socket for socks5 protocol and listen for incoming connections
  * 2. @TODO set up socket for protocol of our own and listen for incoming connections

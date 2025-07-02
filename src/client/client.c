@@ -1,5 +1,155 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "../shared/parser.h"
+#include "./hotdogs.h"
 
-int main(){
-    printf("Hello world\n");
+#define MAX_ACTIONS 16
+#define DEFAULT_IP "127.0.0.1"
+#define DEFAULT_PORT 6969
+#define MAX_PORT 65535
+
+Action actions[MAX_ACTIONS];
+
+char *ip_address = DEFAULT_IP;
+int port_number = DEFAULT_PORT;
+
+int free_ip = 0;
+int actions_count = 0;
+char *username = NULL;
+char *password = NULL;
+
+void add_action(Action action) {
+    if (actions_count >= MAX_ACTIONS) {
+        fprintf(stderr, "Demasiadas acciones\n");
+        exit(1);
+    }
+    actions[actions_count++] = action;
+}
+
+void parse_args(int argc, char **argv) {
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-u") == 0 && i + 1 < argc) {
+            char *token = strtok(argv[++i], ":");
+            if (token) {
+                username = strdup(token);
+                token = strtok(NULL, ":");
+                if (token)
+                    password = strdup(token);
+            }
+        } else if (strcmp(argv[i], "-m") == 0) {
+            Action a = { .type = ACTION_GET_METRICS, .execute = execute_get_metrics };
+            add_action(a);
+        } else if (strcmp(argv[i], "-lu") == 0) {
+            Action a = { .type = ACTION_GET_USERS, .execute = execute_get_users };
+            add_action(a);
+        } else if (strcmp(argv[i], "-ll") == 0) {
+            Action a = { .type = ACTION_GET_LOGS, .execute = execute_get_logs };
+            add_action(a);
+        } else if (strcmp(argv[i], "-t") == 0 && i + 1 < argc) {
+            int val = atoi(argv[++i]);
+            Action a = { .type = ACTION_PUT_TIMEOUT, .execute = execute_put_timeout };
+            a.data.timeout.value = val;
+            add_action(a);
+        } else if (strcmp(argv[i], "-b") == 0 && i + 1 < argc) {
+            int val = atoi(argv[++i]);
+            Action a = { .type = ACTION_PUT_BUFFER, .execute = execute_put_buffer };
+            a.data.buffer.value = val;
+            add_action(a);
+        } else if (strcmp(argv[i], "-add") == 0 && i + 1 < argc) {
+            char *arg = argv[++i];
+            char *user = NULL, *pass = NULL;
+
+            char *token = strtok(arg, ":");
+            if (token) {
+                user = strdup(token);
+                token = strtok(NULL, ":");
+                if (token)
+                    pass = strdup(token);
+            }
+
+            if (user && pass) {
+                Action a = {
+                    .type = ACTION_ADD_USER,
+                    .execute = execute_add_user,
+                    .data.add_user = { user, pass }
+                };
+                add_action(a);
+            } else {
+                fprintf(stderr, "Error adding user (expected -add user:pass)\n");
+                if(user){
+                    free(user);
+                }
+                if(pass){
+                    free(pass);
+                }
+                exit(1);
+            }
+        } else if (strcmp(argv[i], "-rm") == 0 && i + 1 < argc) {
+            char *user = strdup(argv[++i]);
+            if (user) {
+                Action a = {
+                    .type = ACTION_REMOVE_USER,
+                    .execute = execute_remove_user,
+                    .data.remove_user = { user }
+                };
+                add_action(a);
+            } else {
+                fprintf(stderr, "Error removing user (expected -rm user)");
+                exit(1);
+            }
+        } else if (strcmp(argv[i], "-ip") == 0 && i + 1 < argc) {
+            ip_address = strdup(argv[++i]);
+            free_ip = 1;
+        } else if (strcmp(argv[i], "-port") == 0 && i + 1 < argc) {
+            port_number = atoi(argv[++i]);
+        }
+    }
+
+    if (!username || !password) {
+        fprintf(stderr, "Error credentials not provided (-u user:pass)\n");
+        exit(1);
+    }
+}
+
+void freeActions(Action * actions){
+    for(int i=0; i < actions_count; i++){
+        printf("Action %d of type %d\n", i, actions[i].type);
+        if(actions[i].type == ACTION_ADD_USER){
+            free(actions[i].data.add_user.user);
+            free(actions[i].data.add_user.pass);
+        } else if(actions[i].type == ACTION_REMOVE_USER){
+            free(actions[i].data.remove_user.user);
+        }
+    }
+}
+
+int main(int argc, char ** argv){
+    parse_args(argc, argv);
+    if (port_number <= 0 || port_number > 65535) {
+        fprintf(stderr, "Error: Invalid port specified with -port\n");
+        freeActions(actions);
+        free(username);
+        free(password);
+        if(free_ip){
+            free(ip_address);
+        }
+        exit(1);
+    }
+
+    
+    if(authenticate(username, password, ip_address, port_number) != SUCCESS_CONNECTING){
+        // Not so fancy stuff
+    } else {
+        printf("Yay!\n");
+        // HotDogs
+    }
+
+    freeActions(actions);
+    free(username);
+    free(password);
+    if(free_ip){
+        free(ip_address);
+    }
+    return 0;
 }
