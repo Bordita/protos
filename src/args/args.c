@@ -4,7 +4,7 @@
 #include <string.h>    /* memset */
 #include <errno.h>
 #include <getopt.h>
-
+#include "../shared/auth.h"
 #include "args.h"
 
 static char*
@@ -39,6 +39,12 @@ user(char* s, struct users* user)
         p++;
         user->name = s;
         user->pass = p;
+        if (strlen(user->name) == 0 || strlen(user->pass) == 0)
+        {
+            fprintf(stderr, "username and password cannot be empty\n");
+            exit(1);
+        }
+        add_user(user->name, user->pass);
     }
 }
 

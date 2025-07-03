@@ -126,7 +126,7 @@ static socks5_states greeting_write(struct selector_key * key) {
             case METHOD_USERNAME_PASSWORD:
                 return AUTHENTICATION_READ;
             case METHOD_NO_ACCEPTABLE_METHODS:
-                return BAD_CREDENTIALS;
+                return ERROR;
             }
         }
         return ERROR;
@@ -153,8 +153,16 @@ static socks5_states authentication_read(struct selector_key * key) {
     auth_event_type event = auth_parser_read(client, &client->read_buffer);
     if (event == AUTH_EVENT_DONE) {
         if (authenticate_credentials(client->auth_info) != AUTH_STATUS_SUCCESS) {
-            return BAD_CREDENTIALS;
+            client->auth_info.authenticated = false;
+            if(generate_auth_response(&client->write_buffer, AUTH_STATUS_FAILURE) != 0) {
+                return ERROR;
+            }
+            if (SELECTOR_SUCCESS != selector_set_interest_key(key, OP_WRITE)) {
+                return ERROR;
+            }
+            return AUTHENTICATION_WRITE;
         }
+        client->auth_info.authenticated = true;
         if (generate_auth_response(&client->write_buffer, AUTH_STATUS_SUCCESS) != 0) {
             return ERROR;
         }
@@ -181,10 +189,10 @@ static socks5_states authentication_write(struct selector_key * key) {
         buffer_read_adv(&client->write_buffer, len);
     }
     if (!buffer_can_read(&client->write_buffer)) {
-        if (SELECTOR_SUCCESS == selector_set_interest_key(key, OP_READ)) {
-             return REQUEST_READ;        
+        if (SELECTOR_SUCCESS != selector_set_interest_key(key, OP_READ) || client->auth_info.authenticated == false) {
+             return ERROR;        
         }
-        return ERROR;
+        return REQUEST_READ;
     }
     return AUTHENTICATION_WRITE; 
 }

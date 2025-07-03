@@ -8,7 +8,7 @@
 #include "../shared/parser.h"
 #include "../shared/stm.h"
 #include "../shared/selector.h"
-
+#include <stdbool.h>
 #define MAX_SOCKS5_BUFFER_SIZE 1024
 
 static const uint8_t SOCKS_VERSION = 0x05;
@@ -56,6 +56,7 @@ typedef enum {
 typedef struct {
     char username[256];
     char password[256];
+    bool authenticated; 
 } credentials;
 
 

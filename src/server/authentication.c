@@ -6,7 +6,6 @@
 #include "../shared/auth.h"
 #include "socks5.h"
 #include "stdbool.h"
-
 bool keep_feeding_parser = true;
 auth_event_type last_event = AUTH_EVENT_ERROR;
 
@@ -64,7 +63,7 @@ static const struct parser_state_transition auth_transitions_ULEN[] = {
 };
 
 static const struct parser_state_transition auth_transitions_USERNAME[] = {
-    { ANY, AUTH_USERNAME, act_username_byte, NULL },
+    { ANY, AUTH_PLEN, act_username_byte, NULL },
 };
 
 static const struct parser_state_transition auth_transitions_PLEN[] = {
@@ -118,11 +117,10 @@ auth_event_type auth_parser_read(client_socks5 * client, struct buffer *buffer) 
     while ((bufptr = buffer_read_ptr(buffer, &count)) != NULL && count > 0) {
         uint8_t c = bufptr[0];
         buffer_read_adv(buffer, 1);
-        
         if(keep_feeding_parser){
             event = parser_feed(client->parser, c);
         }
-        if(event == AUTH_EVENT_USERNAME_BYTE_OK || event == AUTH_EVENT_PASSWORD_BYTE_OK) {
+        if(event->type == AUTH_EVENT_USERNAME_BYTE_OK || event->type == AUTH_EVENT_PASSWORD_BYTE_OK) {
             keep_feeding_parser = false;
         }
         if (event != NULL || last_event == AUTH_EVENT_USERNAME_BYTE_OK || last_event == AUTH_EVENT_PASSWORD_BYTE_OK) {
@@ -149,7 +147,6 @@ auth_event_type auth_parser_read(client_socks5 * client, struct buffer *buffer) 
                     if (client->parsing_state.authentication.username_bytes_read < client->parsing_state.authentication.username_len) {
                         client->parsing_state.authentication.temp_username[client->parsing_state.authentication.username_bytes_read] = c;
                         client->parsing_state.authentication.username_bytes_read++;
-                        
                         if (client->parsing_state.authentication.username_bytes_read == client->parsing_state.authentication.username_len) {
                             client->parsing_state.authentication.temp_username[client->parsing_state.authentication.username_bytes_read] = '\0';
                             strcpy(client->auth_info.username, client->parsing_state.authentication.temp_username);
