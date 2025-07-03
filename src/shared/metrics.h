@@ -6,7 +6,7 @@
 // TODO: check if can use <stdatomic.h> for atomic operations
 
 void add_socks5_current_connection(void);
-void remove_sockks5_current_connection(void);
+void remove_socks5_current_connection(void);
 int get_socks5_current_connections(void);
 
 void add_hdp_current_connection(void);
