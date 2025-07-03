@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <time.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 void log_init(void);
 
