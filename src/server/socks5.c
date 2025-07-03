@@ -65,6 +65,8 @@ static socks5_states connect_destination(struct selector_key * key){
         }
     }
     
+    // TODO: manejar los otros casos de error
+
     if (SELECTOR_SUCCESS != selector_set_interest(key->s, client->client_socket, OP_NOOP)) {
         close(client->destination_socket);
         return ERROR;
@@ -223,7 +225,7 @@ static socks5_states request_read(struct selector_key * key) {
                 if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
                     return ERROR;
                 }
-                return REQUEST_WRITE;
+                return REQUEST_WRITE_ERROR;
             }
             switch (client->request_info.atyp) {
                 case ATYP_IPV4: {
@@ -240,7 +242,7 @@ static socks5_states request_read(struct selector_key * key) {
                         if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
                             return ERROR;
                         }
-                        return REQUEST_WRITE;
+                        return REQUEST_WRITE_ERROR;
                     }
                     
                     
@@ -264,7 +266,7 @@ static socks5_states request_read(struct selector_key * key) {
                         if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
                             return ERROR;
                         }
-                        return REQUEST_WRITE;
+                        return REQUEST_WRITE_ERROR;
                     }
                     
                     if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
@@ -281,7 +283,7 @@ static socks5_states request_read(struct selector_key * key) {
                         if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
                             return ERROR;
                         }
-                        return REQUEST_WRITE;
+                        return REQUEST_WRITE_ERROR;
                     }
                     memcpy(k, key, sizeof(*key));
                     pthread_t thread;
@@ -291,7 +293,7 @@ static socks5_states request_read(struct selector_key * key) {
                         if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
                             return ERROR;
                         }
-                        return REQUEST_WRITE;
+                        return REQUEST_WRITE_ERROR;
                     }
                     if (selector_set_interest_key(key, OP_NOOP) != SELECTOR_SUCCESS) {
                         return ERROR;
@@ -305,7 +307,7 @@ static socks5_states request_read(struct selector_key * key) {
                     if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
                         return ERROR;
                     }
-                    return REQUEST_WRITE;
+                    return REQUEST_WRITE_ERROR;
             }
             
         case REQUEST_EVENT_VERSION_ERROR:
@@ -313,34 +315,34 @@ static socks5_states request_read(struct selector_key * key) {
             if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
                 return ERROR;
             }
-            return REQUEST_WRITE;
+            return REQUEST_WRITE_ERROR;
             
         case REQUEST_EVENT_CMD_ERROR:
             generate_request_response(&client->write_buffer, REP_COMMAND_NOT_SUPPORTED,ATYP_IPV4, "0.0.0.0", 0);
             if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
                 return ERROR;
             }
-            return REQUEST_WRITE;
+            return REQUEST_WRITE_ERROR;
             
         case REQUEST_EVENT_ATYP_ERROR:
             generate_request_response(&client->write_buffer, REP_ADDRESS_TYPE_NOT_SUPPORTED,ATYP_IPV4, "0.0.0.0", 0);
             if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
                 return ERROR;
             }
-            return REQUEST_WRITE;
+            return REQUEST_WRITE_ERROR;
             
         case REQUEST_EVENT_ERROR:
             generate_request_response(&client->write_buffer, REP_GENERAL_FAILURE,ATYP_IPV4, "0.0.0.0", 0);
             if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
                 return ERROR;
             }
-            return REQUEST_WRITE;
+            return REQUEST_WRITE_ERROR;
             break;
-        default:
-            if (selector_set_interest_key(key, OP_READ) != SELECTOR_SUCCESS) {
-                return ERROR;
-            }
-            return REQUEST_READ;
+        // default:
+        //     if (selector_set_interest_key(key, OP_READ) != SELECTOR_SUCCESS) {
+        //         return ERROR;
+        //     }
+        //     return REQUEST_READ;
     }
     
     return REQUEST_READ;
@@ -354,7 +356,7 @@ static socks5_states request_resolv(struct selector_key * key) {
         if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
             return ERROR;
         }
-        return REQUEST_WRITE;
+        return REQUEST_WRITE_ERROR;
     }
     
     if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
@@ -395,6 +397,26 @@ static socks5_states request_connect(struct selector_key * key) {
         return ERROR;
     }
     return REQUEST_WRITE;
+}
+
+static socks5_states request_write_error(struct selector_key * key) {
+    client_socks5 * client = (client_socks5 *)key->data;
+     size_t count;
+    uint8_t * bufptr = buffer_read_ptr(&client->write_buffer, &count);
+    ssize_t len = send(client->client_socket, bufptr, count, MSG_NOSIGNAL);
+    if (len == -1) {
+        return ERROR;
+    }
+    buffer_read_adv(&client->write_buffer, len);
+
+
+    if (!buffer_can_read(&client->write_buffer)) {
+        if (SELECTOR_SUCCESS == selector_set_interest_key(key, OP_READ)) {
+            return REQUEST_READ;
+        }
+        return ERROR;
+    }
+    return REQUEST_WRITE_ERROR;
 }
 
 static socks5_states request_write(struct selector_key * key) {
@@ -464,7 +486,7 @@ static socks5_states try_next_address(struct selector_key * key) {
         return ERROR;
     }
     
-    return REQUEST_WRITE;
+    return REQUEST_WRITE_ERROR;
 }
 
 
@@ -545,6 +567,10 @@ static const struct state_definition states[] = {
         .on_write_ready = request_connect,
     },
     {
+        .state = REQUEST_WRITE_ERROR,
+        .on_write_ready = request_write_error,
+    },
+    {
         .state = REQUEST_WRITE,
         .on_write_ready = request_write,
     },
@@ -552,7 +578,7 @@ static const struct state_definition states[] = {
         .state = RELAY_DATA,
         .on_arrival = relay_data_init,
         .on_read_ready = relay_data_read,
-       .on_write_ready = relay_data_write,
+        .on_write_ready = relay_data_write,
     },
     {
         .state = ERROR,
