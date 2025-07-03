@@ -470,6 +470,7 @@ static socks5_states relay_data_read(struct selector_key * key) {
         fd = client->destination_socket;
         target_buffer = &client->dest_to_client_buffer;
     } else {
+        fprintf(stderr, "relay_data_read: fd desconocido (%d)\n", key->fd);
         return ERROR;
     }
 
@@ -478,17 +479,28 @@ static socks5_states relay_data_read(struct selector_key * key) {
     if (n > 0) {
         buffer_write_adv(target_buffer, n);
         // Habilitar escritura en el otro socket
-        if (fd == client->client_socket) {
-            selector_set_interest(key->s, client->destination_socket, OP_WRITE);
-        } else {
-            selector_set_interest(key->s, client->client_socket, OP_WRITE);
+        int other_fd = (fd == client->client_socket) ? client->destination_socket : client->client_socket;
+        if (selector_set_interest(key->s, other_fd, OP_WRITE) != SELECTOR_SUCCESS) {
+            fprintf(stderr, "relay_data_read: error habilitando OP_WRITE en fd %d\n", other_fd);
+            return ERROR;
         }
     } else if (n == 0) {
-        // EOF, cerrar conexión
+        // EOF, el otro extremo cerró la conexión
+        fprintf(stderr, "relay_data_read: recv devolvió 0 (EOF) en fd %d\n", fd);
         return ERROR;
     } else {
-        // Error
-        return ERROR;
+        // Error en recv
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            // El socket no está listo para leer, esperar próximo evento
+            return RELAY_DATA;
+        } else if (errno == EINTR) {
+            // Interrumpido por señal, intentar de nuevo
+            return RELAY_DATA;
+        } else {
+            // Error fatal
+            perror("relay_data_read: recv error");
+            return ERROR;
+        }
     }
     return RELAY_DATA;
 }
@@ -511,6 +523,7 @@ static socks5_states relay_data_write(struct selector_key * key) {
         fd = client->client_socket;
         source_buffer = &client->dest_to_client_buffer;
     } else {
+        fprintf(stderr, "relay_data_write: fd desconocido (%d)\n", key->fd);
         return ERROR;
     }
 
@@ -520,16 +533,30 @@ static socks5_states relay_data_write(struct selector_key * key) {
         if (n > 0) {
             buffer_read_adv(source_buffer, n);
         } else if (n == 0) {
-            // EOF, cerrar conexión
+            // EOF, el otro extremo cerró la conexión
+            fprintf(stderr, "relay_data_write: send devolvió 0 (EOF) en fd %d\n", fd);
             return ERROR;
         } else {
-            // Error
-            return ERROR;
+            // Error en send
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                // El socket no está listo para escribir, esperar próximo evento
+                return RELAY_DATA;
+            } else if (errno == EINTR) {
+                // Interrumpido por señal, intentar de nuevo
+                return RELAY_DATA;
+            } else {
+                // Error fatal
+                perror("relay_data_write: send error");
+                return ERROR;
+            }
         }
     }
     // Si el buffer está vacío, deshabilitar interés de escritura
     if (!buffer_can_read(source_buffer)) {
-        selector_set_interest(key->s, fd, OP_READ);
+        if (selector_set_interest(key->s, fd, OP_READ) != SELECTOR_SUCCESS) {
+            fprintf(stderr, "relay_data_write: error deshabilitando OP_WRITE en fd %d\n", fd);
+            return ERROR;
+        }
     }
     return RELAY_DATA;
 }
