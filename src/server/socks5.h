@@ -107,11 +107,10 @@ typedef struct client_socks5 {
 
 
     // Destination address
-    struct sockaddr_storage origin_addr;
-    socklen_t origin_addr_len;
-    int origin_socket;
-    int origin_domain;
-    int origin_interests;
+    struct sockaddr_storage destination_addr;
+    socklen_t destination_addr_len;
+    int destination_socket;
+    int destination_domain;
 
     // name resolution
     struct addrinfo * resolved_addr;

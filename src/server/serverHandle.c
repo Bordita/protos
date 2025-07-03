@@ -21,7 +21,7 @@ void close_connection(client_socks5 * client) {
     client->dont_close = true;
 
     int client_socket = client->client_socket;
-    int server_socket = client->origin_socket;
+    int server_socket = client->destination_socket;
 
  
     if (server_socket != -1) {
