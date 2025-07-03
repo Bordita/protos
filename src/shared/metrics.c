@@ -19,7 +19,7 @@ void add_socks5_current_connection(void){
     metrics.historic_connections++;
 }
 
-void remove_sockks5_current_connection(void){
+void remove_socks5_current_connection(void){
     if (metrics.socks5_current_connections > 0)
         metrics.socks5_current_connections--;
 } 
