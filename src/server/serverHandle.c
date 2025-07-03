@@ -89,7 +89,7 @@ static const fd_handler socks_connection_fd_handler = {
 static void passive_socket_handler(struct selector_key *key) {
     int fd = key->fd;
 
-    int fds_in_use = get_current_connections() * FDS_PER_SOCKS_CONNECTION + SERVER_LISTEN_SOCKET_COUNT;
+    int fds_in_use = get_socks5_current_connections() * FDS_PER_SOCKS_CONNECTION + get_hdp_current_connections() + SERVER_LISTEN_SOCKET_COUNT;
     if ((MAX_FDS - fds_in_use) < FDS_PER_SOCKS_CONNECTION) {
         int new_fd;
         if ((new_fd = accept(fd, NULL, NULL)) != -1) {
