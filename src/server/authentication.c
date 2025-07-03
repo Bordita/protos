@@ -121,17 +121,15 @@ auth_event_type auth_parser_read(client_socks5 * client, struct buffer *buffer) 
         
         if(keep_feeding_parser){
             event = parser_feed(client->parser, c);
-        }else{
-            event = last_event;
         }
-        
         if(event == AUTH_EVENT_USERNAME_BYTE_OK || event == AUTH_EVENT_PASSWORD_BYTE_OK) {
             keep_feeding_parser = false;
         }
-        if (event != NULL) {
-            last_event = event->type;
-            
-            switch (event->type) {
+        if (event != NULL || last_event == AUTH_EVENT_USERNAME_BYTE_OK || last_event == AUTH_EVENT_PASSWORD_BYTE_OK) {
+            if (event != NULL){
+                last_event = event->type;
+            }
+            switch (last_event) {
                 case AUTH_EVENT_VERSION_OK:
                     client->parsing_state.authentication.version = c;
                     break;
