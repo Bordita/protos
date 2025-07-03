@@ -5,6 +5,10 @@
 #include "../shared/buffer.h"
 #include "../shared/auth.h"
 #include "socks5.h"
+#include "stdbool.h"
+
+bool keep_feeding_parser = true;
+auth_event_type last_event = AUTH_EVENT_ERROR;
 
 // Actions for the authentication parser
 static void act_version(struct parser_event *ret, const uint8_t c) {
@@ -110,13 +114,20 @@ auth_event_type auth_parser_read(client_socks5 * client, struct buffer *buffer) 
     struct parser_event *event;
     size_t count;
     uint8_t *bufptr;
-    auth_event_type last_event = AUTH_EVENT_ERROR;
 
     while ((bufptr = buffer_read_ptr(buffer, &count)) != NULL && count > 0) {
         uint8_t c = bufptr[0];
         buffer_read_adv(buffer, 1);
-
-        event = parser_feed(client->parser, c);
+        
+        if(keep_feeding_parser){
+            event = parser_feed(client->parser, c);
+        }else{
+            event = last_event;
+        }
+        
+        if(event == AUTH_EVENT_USERNAME_BYTE_OK || event == AUTH_EVENT_PASSWORD_BYTE_OK) {
+            keep_feeding_parser = false;
+        }
         if (event != NULL) {
             last_event = event->type;
             
@@ -144,6 +155,7 @@ auth_event_type auth_parser_read(client_socks5 * client, struct buffer *buffer) 
                         if (client->parsing_state.authentication.username_bytes_read == client->parsing_state.authentication.username_len) {
                             client->parsing_state.authentication.temp_username[client->parsing_state.authentication.username_bytes_read] = '\0';
                             strcpy(client->auth_info.username, client->parsing_state.authentication.temp_username);
+                            keep_feeding_parser = true; 
                         }
                     }
                     break;
@@ -166,6 +178,7 @@ auth_event_type auth_parser_read(client_socks5 * client, struct buffer *buffer) 
                         if (client->parsing_state.authentication.password_bytes_read == client->parsing_state.authentication.password_len) {
                             client->parsing_state.authentication.temp_password[client->parsing_state.authentication.password_bytes_read] = '\0';
                             strcpy(client->auth_info.password, client->parsing_state.authentication.temp_password);
+                            keep_feeding_parser = true; 
                             return AUTH_EVENT_DONE;
                         }
                     }

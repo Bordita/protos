@@ -25,52 +25,52 @@ static inline void clear_parsing_state(client_socks5 *client) {
     memset(&client->parsing_state, 0, sizeof(client->parsing_state));
 }
 
-static socks5_states connect_origin(struct selector_key * key){
+static socks5_states connect_destination(struct selector_key * key){
     client_socks5 * client = (client_socks5 *)key->data;
 
    
     if (client->resolved_addr != NULL && client->resolved_addr_current != NULL) {
-        client->origin_domain = client->resolved_addr_current->ai_family;
-        client->origin_addr_len = client->resolved_addr_current->ai_addrlen;
-        memcpy(&client->origin_addr, client->resolved_addr_current->ai_addr, client->resolved_addr_current->ai_addrlen);
+        client->destination_domain = client->resolved_addr_current->ai_family;
+        client->destination_addr_len = client->resolved_addr_current->ai_addrlen;
+        memcpy(&client->destination_addr, client->resolved_addr_current->ai_addr, client->resolved_addr_current->ai_addrlen);
     }
 
-    client->origin_socket = socket(client->origin_domain, SOCK_STREAM, IPPROTO_TCP);
-    if (client->origin_socket == -1) {
+    client->destination_socket = socket(client->destination_domain, SOCK_STREAM, IPPROTO_TCP);
+    if (client->destination_socket == -1) {
         printf("Error creando socket: %s\n", strerror(errno));
         return ERROR;
     }
     
-    selector_status ret = selector_fd_set_nio(client->origin_socket);
+    selector_status ret = selector_fd_set_nio(client->destination_socket);
     if (ret != SELECTOR_SUCCESS) {
-        close(client->origin_socket);
+        close(client->destination_socket);
         return ERROR;
     }
 
-    if (connect(client->origin_socket, (struct sockaddr *)&client->origin_addr, client->origin_addr_len) < 0) {
+    if (connect(client->destination_socket, (struct sockaddr *)&client->destination_addr, client->destination_addr_len) < 0) {
         if (errno == EINPROGRESS) {
             if (SELECTOR_SUCCESS != selector_set_interest(key->s, client->client_socket, OP_NOOP)) {
-                close(client->origin_socket);
+                close(client->destination_socket);
                 return ERROR;
             }
-            if (SELECTOR_SUCCESS != selector_register(key->s, client->origin_socket, get_connection_fd_handler(), OP_WRITE, client)) {
-                close(client->origin_socket);
+            if (SELECTOR_SUCCESS != selector_register(key->s, client->destination_socket, get_connection_fd_handler(), OP_WRITE, client)) {
+                close(client->destination_socket);
                 return ERROR;
             }
             client->connection_attempts++;
             return REQUEST_CONNECT;
         } else {
-            close(client->origin_socket);
+            close(client->destination_socket);
             return try_next_address(key);
         }
     }
     
     if (SELECTOR_SUCCESS != selector_set_interest(key->s, client->client_socket, OP_NOOP)) {
-        close(client->origin_socket);
+        close(client->destination_socket);
         return ERROR;
     }
-    if (SELECTOR_SUCCESS != selector_register(key->s, client->origin_socket, get_connection_fd_handler(), OP_WRITE, client)) {
-        close(client->origin_socket);
+    if (SELECTOR_SUCCESS != selector_register(key->s, client->destination_socket, get_connection_fd_handler(), OP_WRITE, client)) {
+        close(client->destination_socket);
         return ERROR;
     }
     client->connection_attempts++;
@@ -219,9 +219,9 @@ static socks5_states request_read(struct selector_key * key) {
             }
             switch (client->request_info.atyp) {
                 case ATYP_IPV4: {
-                    struct sockaddr_in *addr = (struct sockaddr_in *)&client->origin_addr;
-                    client->origin_domain = AF_INET;
-                    client->origin_addr_len = sizeof(struct sockaddr_in);
+                    struct sockaddr_in *addr = (struct sockaddr_in *)&client->destination_addr;
+                    client->destination_domain = AF_INET;
+                    client->destination_addr_len = sizeof(struct sockaddr_in);
                     
                     memset(addr, 0, sizeof(struct sockaddr_in));
                     addr->sin_family = AF_INET;
@@ -239,13 +239,13 @@ static socks5_states request_read(struct selector_key * key) {
                     if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
                         return ERROR;
                     }
-                    return connect_origin(key);
+                    return connect_destination(key);
                 }
                 
                 case ATYP_IPV6: {
-                    struct sockaddr_in6 *addr = (struct sockaddr_in6 *)&client->origin_addr;
-                    client->origin_domain = AF_INET6;
-                    client->origin_addr_len = sizeof(struct sockaddr_in6);
+                    struct sockaddr_in6 *addr = (struct sockaddr_in6 *)&client->destination_addr;
+                    client->destination_domain = AF_INET6;
+                    client->destination_addr_len = sizeof(struct sockaddr_in6);
                     
                     memset(addr, 0, sizeof(struct sockaddr_in6));
                     addr->sin6_family = AF_INET6;
@@ -263,7 +263,7 @@ static socks5_states request_read(struct selector_key * key) {
                         return ERROR;
                     }
                     
-                    return connect_origin(key);
+                    return connect_destination(key);
                 }
                 
                 case ATYP_DOMAINNAME: {
@@ -353,7 +353,7 @@ static socks5_states request_resolv(struct selector_key * key) {
         return ERROR;
     }
     
-    return connect_origin(key);
+    return connect_destination(key);
 }
 
 static socks5_states request_connect(struct selector_key * key) {
@@ -362,15 +362,15 @@ static socks5_states request_connect(struct selector_key * key) {
     int error = 0;
     socklen_t error_size = sizeof(error);
     
-    if (getsockopt(client->origin_socket, SOL_SOCKET, SO_ERROR, &error, &error_size) != 0) {
-        selector_unregister_fd(key->s, client->origin_socket);
-        close(client->origin_socket);
+    if (getsockopt(client->destination_socket, SOL_SOCKET, SO_ERROR, &error, &error_size) != 0) {
+        selector_unregister_fd(key->s, client->destination_socket);
+        close(client->destination_socket);
         return try_next_address(key);
     }
     
     if (error != 0) {
-        selector_unregister_fd(key->s, client->origin_socket);
-        close(client->origin_socket);
+        selector_unregister_fd(key->s, client->destination_socket);
+        close(client->destination_socket);
         return try_next_address(key);
     }
 
@@ -401,7 +401,7 @@ static socks5_states request_write(struct selector_key * key) {
 
 
     if (!buffer_can_read(&client->write_buffer)) {
-        if (SELECTOR_SUCCESS == selector_set_interest_key(key, OP_READ) && SELECTOR_SUCCESS == selector_set_interest(key->s, client->origin_socket, OP_READ)) {
+        if (SELECTOR_SUCCESS == selector_set_interest_key(key, OP_READ) && SELECTOR_SUCCESS == selector_set_interest(key->s, client->destination_socket, OP_READ)) {
             return RELAY_DATA;
         }
         return ERROR;
@@ -438,7 +438,7 @@ static socks5_states try_next_address(struct selector_key * key) {
         
         if (client->resolved_addr_current != NULL) {
             client->connection_attempts++;
-            return connect_origin(key);
+            return connect_destination(key);
         }
     }
     if (client->resolved_addr != NULL) {
@@ -488,13 +488,13 @@ static void* request_resolv_thread(void * arg) {
         }
         
         if (result->ai_family == AF_INET) {
-            client->origin_domain = AF_INET;
-            client->origin_addr_len = sizeof(struct sockaddr_in);
+            client->destination_domain = AF_INET;
+            client->destination_addr_len = sizeof(struct sockaddr_in);
         } else if (result->ai_family == AF_INET6) {
-            client->origin_domain = AF_INET6;
-            client->origin_addr_len = sizeof(struct sockaddr_in6);
+            client->destination_domain = AF_INET6;
+            client->destination_addr_len = sizeof(struct sockaddr_in6);
         }
-        memcpy(&client->origin_addr, result->ai_addr, result->ai_addrlen);
+        memcpy(&client->destination_addr, result->ai_addr, result->ai_addrlen);
         selector_notify_block(key->s, key->fd);
     } else {
         client->resolved_addr = NULL;
