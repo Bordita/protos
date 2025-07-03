@@ -441,21 +441,97 @@ static socks5_states request_write(struct selector_key * key) {
 
 static void relay_data_init(unsigned state, struct selector_key * key) {
     client_socks5 * client = (client_socks5 *)key->data;
-    // Initialize the copy state
+    // Inicializar buffers de relay si no están inicializados
+    if (client->raw_buffer_client_to_dest == NULL) {
+        client->raw_buffer_client_to_dest = malloc(MAX_SOCKS5_BUFFER_SIZE);
+        buffer_init(&client->client_to_dest_buffer, MAX_SOCKS5_BUFFER_SIZE, client->raw_buffer_client_to_dest);
+    }
+    if (client->raw_buffer_dest_to_client == NULL) {
+        client->raw_buffer_dest_to_client = malloc(MAX_SOCKS5_BUFFER_SIZE);
+        buffer_init(&client->dest_to_client_buffer, MAX_SOCKS5_BUFFER_SIZE, client->raw_buffer_dest_to_client);
+    }
 }   
 
 static socks5_states relay_data_read(struct selector_key * key) {
     client_socks5 * client = (client_socks5 *)key->data;
-    // Handle the reading of data to be copied
-  
-    return RELAY_DATA; 
+    ssize_t n;
+    size_t space;
+    uint8_t * write_ptr;
+    int fd;
+    buffer * target_buffer;
+
+    // Determinar de dónde viene el evento
+    if (key->fd == client->client_socket) {
+        // Leer del cliente y guardar en el buffer hacia el destino
+        fd = client->client_socket;
+        target_buffer = &client->client_to_dest_buffer;
+    } else if (key->fd == client->destination_socket) {
+        // Leer del destino y guardar en el buffer hacia el cliente
+        fd = client->destination_socket;
+        target_buffer = &client->dest_to_client_buffer;
+    } else {
+        return ERROR;
+    }
+
+    write_ptr = buffer_write_ptr(target_buffer, &space);
+    n = recv(fd, write_ptr, space, MSG_NOSIGNAL);
+    if (n > 0) {
+        buffer_write_adv(target_buffer, n);
+        // Habilitar escritura en el otro socket
+        if (fd == client->client_socket) {
+            selector_set_interest(key->s, client->destination_socket, OP_WRITE);
+        } else {
+            selector_set_interest(key->s, client->client_socket, OP_WRITE);
+        }
+    } else if (n == 0) {
+        // EOF, cerrar conexión
+        return ERROR;
+    } else {
+        // Error
+        return ERROR;
+    }
+    return RELAY_DATA;
 }
 
 static socks5_states relay_data_write(struct selector_key * key) {
     client_socks5 * client = (client_socks5 *)key->data;
-    // Handle the writing of copied data
-   
-    return RELAY_DATA; 
+    ssize_t n;
+    size_t count;
+    uint8_t * read_ptr;
+    int fd;
+    buffer * source_buffer;
+
+    // Determinar a dónde va el evento
+    if (key->fd == client->destination_socket) {
+        // Escribir al destino desde el buffer
+        fd = client->destination_socket;
+        source_buffer = &client->client_to_dest_buffer;
+    } else if (key->fd == client->client_socket) {
+        // Escribir al cliente desde el buffer
+        fd = client->client_socket;
+        source_buffer = &client->dest_to_client_buffer;
+    } else {
+        return ERROR;
+    }
+
+    read_ptr = buffer_read_ptr(source_buffer, &count);
+    if (count > 0) {
+        n = send(fd, read_ptr, count, MSG_NOSIGNAL);
+        if (n > 0) {
+            buffer_read_adv(source_buffer, n);
+        } else if (n == 0) {
+            // EOF, cerrar conexión
+            return ERROR;
+        } else {
+            // Error
+            return ERROR;
+        }
+    }
+    // Si el buffer está vacío, deshabilitar interés de escritura
+    if (!buffer_can_read(source_buffer)) {
+        selector_set_interest(key->s, fd, OP_READ);
+    }
+    return RELAY_DATA;
 }
 
 

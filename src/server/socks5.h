@@ -125,6 +125,12 @@ typedef struct client_socks5 {
     buffer read_buffer;
     buffer write_buffer;
 
+    // Buffers para relay (cliente <-> destino)
+    uint8_t * raw_buffer_client_to_dest;
+    uint8_t * raw_buffer_dest_to_client;
+    buffer client_to_dest_buffer;
+    buffer dest_to_client_buffer;
+
     struct state_machine stm;
 
     struct parser* parser;
