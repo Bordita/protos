@@ -27,7 +27,7 @@ void add_action(Action action) {
     actions[actions_count++] = action;
 }
 
-void parse_args(int argc, char **argv) {
+void _parse_args(int argc, char **argv) {
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-u") == 0 && i + 1 < argc) {
             char *token = strtok(argv[++i], ":");
@@ -125,7 +125,7 @@ void freeActions(Action * actions){
 }
 
 int main(int argc, char ** argv){
-    parse_args(argc, argv);
+    _parse_args(argc, argv);
     if (port_number <= 0 || port_number > 65535) {
         fprintf(stderr, "Error: Invalid port specified with -port\n");
         freeActions(actions);
