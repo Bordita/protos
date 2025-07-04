@@ -143,19 +143,19 @@ ResponseStatus execute_get(ReqMethod req, GetOptions opt){
 ResponseStatus execute_get_metrics(Action * action){
     action->type = action->type;
 
-    return execute_get(GET, METRICS);
+    return execute_get(RETR, METRICS);
 }
 
 ResponseStatus execute_get_users(Action * action){
     action->type = action->type;
 
-    return execute_get(GET, LIST_USERS);
+    return execute_get(RETR, LIST_USERS);
 }
 
 ResponseStatus execute_get_logs(Action * action){
     action->type = action->type;
 
-    return execute_get(GET, LIST_LOGS);
+    return execute_get(RETR, LIST_LOGS);
 }
 
 ResponseStatus execute_put_timeout(Action * action){

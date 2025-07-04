@@ -9,8 +9,8 @@ typedef enum AuthenticationStatus{
 } AuthenticationStatus;
 
 typedef enum ReqMethod{
-    GET = 0,
-    PUT
+    RETR = 0,
+    MOD
 } ReqMethod;
 
 typedef enum GetOptions{
