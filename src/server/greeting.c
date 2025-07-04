@@ -6,7 +6,6 @@
 #include "../shared/buffer.h"
 #include "socks5.h"
 #include "../shared/auth.h"
-
 // Actions for the greeting parser 
 static void act_version(struct parser_event *ret, const uint8_t c) {
     ret->type = GREETING_EVENT_VERSION_OK;
@@ -114,11 +113,11 @@ greeting_event_type parser_read(client_socks5 * client, struct buffer *buffer) {
                             client->selected_method = METHOD_NO_ACCEPTABLE_METHODS;
                             
                             for (int i = 0; i < client->parsing_state.greeting.methods_read; i++) {
-                                if (client->parsing_state.greeting.received_methods[i] == METHOD_NO_AUTHENTICATION_REQUIRED && !authentication_enabled()) { 
+                                if (client->parsing_state.greeting.received_methods[i] == METHOD_NO_AUTHENTICATION_REQUIRED) { 
                                     client->selected_method = METHOD_NO_AUTHENTICATION_REQUIRED;
-                                    break;
                                 } else if (client->parsing_state.greeting.received_methods[i] == METHOD_USERNAME_PASSWORD) { 
                                     client->selected_method = METHOD_USERNAME_PASSWORD;
+                                    break;
                                 }
                             }
                             return GREETING_EVENT_DONE;

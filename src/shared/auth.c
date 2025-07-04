@@ -101,7 +101,6 @@ UserList * create_user(const char *username, const char *password) {
     new_user->username = username;
     new_user->password = password;
     new_user->next = NULL;
-    auth_enabled = true; 
     return new_user;
 }
 

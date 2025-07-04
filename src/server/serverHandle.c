@@ -230,13 +230,12 @@ int server_handler(char * socks_addr, char * socks_port, char * hot_dogs_addr,ch
 
     struct timespec selector_timeout = {0};
     selector_timeout.tv_sec = SELECTOR_TIMEOUT;
-    struct selector_init selector_init_struct = {SIGCHLD, selector_timeout};
+    struct selector_init selector_init_struct = {SIGALRM, selector_timeout};
     
      if ((selector_init_ret = selector_init(&selector_init_struct)) != SELECTOR_SUCCESS) {
         fprintf(stderr, "Selector init error: %s",selector_error(selector_init_ret));
         goto finally;
     }
-
     selector = selector_new(INITIAL_SELECTOR_ITEMS);
     if (selector == NULL) {
         error_msg = "Error creating the selector";
