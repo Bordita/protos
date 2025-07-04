@@ -6,8 +6,13 @@
 
 #define MAX_ACTIONS 16
 #define DEFAULT_IP "127.0.0.1"
-#define DEFAULT_PORT 6969
+#define DEFAULT_PORT 8080
 #define MAX_PORT 65535
+
+#define SUCCESS_VALUE 0
+#define ERROR_VALUE -1
+
+static int return_value = SUCCESS_VALUE;
 
 Action actions[MAX_ACTIONS];
 
@@ -124,32 +129,39 @@ void freeActions(Action * actions){
     }
 }
 
+static void execute_actions(){
+    ResponseStatus execution_status = SUCCESS_RESPONSE;
+    for(int i = 0; i < actions_count; i++){
+        execution_status = actions[i].execute(&actions[i]);
+        if(execution_status != SUCCESS_RESPONSE){
+            print_error_msg(execution_status);
+            return_value = ERROR_VALUE;
+            return;
+        }
+    }
+}
+
 int main(int argc, char ** argv){
     _parse_args(argc, argv);
     if (port_number <= 0 || port_number > 65535) {
         fprintf(stderr, "Error: Invalid port specified with -port\n");
-        freeActions(actions);
-        free(username);
-        free(password);
-        if(free_ip){
-            free(ip_address);
-        }
-        exit(1);
+        return_value = ERROR_VALUE;
+        goto cleanup;
     }
 
     
-    if(authenticate(username, password, ip_address, port_number) != SUCCESS_CONNECTING){
-        // Not so fancy stuff
+    if(authenticate(username, password, ip_address, port_number) == SUCCESS_CONNECTING){
+        execute_actions();
     } else {
-        printf("Yay!\n");
-        // HotDogs
+        return_value = ERROR_VALUE;
     }
 
+cleanup:
     freeActions(actions);
     free(username);
     free(password);
     if(free_ip){
         free(ip_address);
     }
-    return 0;
+    return return_value;
 }

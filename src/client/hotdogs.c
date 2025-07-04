@@ -6,12 +6,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include "./hotdogs.h"
-
-static int version;
-ReqMethod reqType = -1;
-AuthenticationStatus authStatus = -1;
-int options;
 
 int fd = -1;
 
@@ -53,18 +49,18 @@ static int connect_socket(char * addr, int port){
 
 int authenticate(char * uname, char * pass, char * addr, int port){
     if(uname == NULL || pass == NULL || addr == NULL){
-        fprintf(stderr, "Error during authentication\n");
+        fprintf(stderr, "[Error] Either username, password or server address for authenticating are not valid\n");
         return UNSUCCESSFUL_CONNECTION;
     }
     int uname_len = strlen(uname);
     int pass_len = strlen(pass);
     if(uname_len > MAX_UNAME_LEN || pass_len > MAX_PASS_LEN){
-        fprintf(stderr, "Error, username or password are longer than 255 characters\n");
+        fprintf(stderr, "[Error] Username or password are longer than 255 characters\n");
         return UNSUCCESSFUL_CONNECTION;
     }
     
     if(connect_socket(addr, port) != SUCCESS_CONNECTING){
-        fprintf(stderr, "Error connecting %s:%d\n", addr, port);
+        fprintf(stderr, "[Error] Error connecting %s:%d\n", addr, port);
         return UNSUCCESSFUL_CONNECTION;
     }
 
@@ -85,60 +81,123 @@ int authenticate(char * uname, char * pass, char * addr, int port){
     buflen += pass_len;
 
     if(send(fd, buffer, buflen, 0) < 0){
-        fprintf(stderr, "Authentication error: Unable to send credentials\n");
+        fprintf(stderr, "[Error] Authentication: Unable to send credentials\n");
         return UNSUCCESSFUL_CONNECTION;
     }
 
     uint8_t ans[AUTH_RESPONSE_LEN] = {0};
     if(recv(fd, ans, AUTH_RESPONSE_LEN, MSG_WAITALL) < 0){
-        fprintf(stderr, "Authentication error: Unable to receive authentication confirmation\n");
+        fprintf(stderr, "[Error] Authentication: Unable to receive authentication confirmation\n");
         return UNSUCCESSFUL_CONNECTION;
     }
 
     if(ans[0] != VERSION){
-        fprintf(stderr, "Authentication error: Version not accepted\n");
+        fprintf(stderr, "[Error] Authentication: Version not accepted\n");
         return UNSUCCESSFUL_CONNECTION;
     }
 
     if(ans[1] != AUTH_SUCCESS){
-        fprintf(stderr, "Authentication error: Invalid credentials. Code %d\n", ans[1]);
+        fprintf(stderr, "[Error] Authentication: Invalid credentials. Code %d\n", ans[1]);
         return UNSUCCESSFUL_CONNECTION;
     }
 
     return SUCCESS_CONNECTING;
 }
 
-int execute_get_metrics(Action * action){
-    printf("Executing get metrics\n");
-    return 0;
+ResponseStatus execute_get(ReqMethod req, GetOptions opt){
+    uint8_t request[2] = {0};
+    request[0] = (uint8_t)req;
+    request[1] = (uint8_t)opt;
+    if(send(fd, &request, 2, 0) < 0){
+        return WHO_LET_BRO_COOK_RESPONSE;
+    }
+
+    uint8_t first_response[5] = {0};
+    if(recv(fd, &first_response, 5, MSG_WAITALL) < 5){
+        return WHO_LET_BRO_COOK_RESPONSE;
+    }
+
+    if((uint8_t)first_response[2] != SUCCESS_RESPONSE) {
+       return (uint8_t)first_response[2];
+    }
+
+    uint16_t data_len = *(uint16_t *)&first_response[3];
+    uint8_t * data = malloc(data_len);
+    if(data == NULL){
+        return WHO_LET_BRO_COOK_RESPONSE;
+    }
+
+    if(recv(fd, data, data_len, MSG_WAITALL) < data_len){
+        free(data);
+        return WHO_LET_BRO_COOK_RESPONSE;
+    }
+
+    // Do something with the data, maybe print it idk, should rethink it.
+    fwrite(data, 1, data_len, stdout);
+    printf("\n");
+
+    free(data);
+    return SUCCESS_RESPONSE;
 }
 
-int execute_get_users(Action * action){
-    printf("Executing get users\n");
-    return 0;
+ResponseStatus execute_get_metrics(Action * action){
+    action->type = action->type;
+
+    return execute_get(GET, METRICS);
 }
 
-int execute_get_logs(Action * action){
-    printf("Executing get logs\n");
-    return 0;
+ResponseStatus execute_get_users(Action * action){
+    action->type = action->type;
+
+    return execute_get(GET, LIST_USERS);
 }
 
-int execute_put_timeout(Action * action){
+ResponseStatus execute_get_logs(Action * action){
+    action->type = action->type;
+
+    return execute_get(GET, LIST_LOGS);
+}
+
+ResponseStatus execute_put_timeout(Action * action){
+    action->type = action->type;
     printf("Executing put timeout\n");
     return 0;
 }
 
-int execute_put_buffer(Action * action){
+ResponseStatus execute_put_buffer(Action * action){
+    action->type = action->type;
     printf("Executing put buffer\n");
     return 0;
 }
 
-int execute_add_user(Action * action){
+ResponseStatus execute_add_user(Action * action){
+    action->type = action->type;
     printf("Executing add user\n");
     return 0;
 }
 
-int execute_remove_user(Action * action){
+ResponseStatus execute_remove_user(Action * action){
+    action->type = action->type;
     printf("Executing remove user\n");
     return 0;
+}
+
+void print_error_msg(ResponseStatus status){
+    if(status == SUCCESS_RESPONSE){
+        return;
+    }
+    
+    switch(status){
+        case NO_BUN_FOUND: 
+            fprintf(stderr, "[Error] Invalid Method\n");
+            return;
+        case BAD_TOPPING:
+            fprintf(stderr, "[Error] Invalid Operation\n");
+            return;
+        case NO_SUCH_BUN:
+            fprintf(stderr, "[Error] User not found\n");
+            return;
+        case WHO_LET_BRO_COOK_RESPONSE:
+            fprintf(stderr, "[Error] Generic Server Error\n");
+    }
 }

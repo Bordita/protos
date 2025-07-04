@@ -29,18 +29,22 @@ typedef struct Action{
         struct { char *user; char *pass; } add_user;
         struct { char *user; } remove_user;
     } data;
-    int (*execute)(struct Action * action);
+    ResponseStatus (*execute)(struct Action * action);
 } Action;
+
+void print_error_msg(ResponseStatus status);
 
 int authenticate(char * uname, char * pass, char * addr, int port);
 
-int execute_get_metrics(Action * action);
-int execute_get_users(Action * action);
-int execute_get_logs(Action * action);
-int execute_put_timeout(Action * action);
-int execute_put_buffer(Action * action);
-int execute_add_user(Action * action);
-int execute_remove_user(Action * action);
+ResponseStatus execute_get(ReqMethod req, GetOptions opt);
+
+ResponseStatus execute_get_metrics(Action * action);
+ResponseStatus execute_get_users(Action * action);
+ResponseStatus execute_get_logs(Action * action);
+ResponseStatus execute_put_timeout(Action * action);
+ResponseStatus execute_put_buffer(Action * action);
+ResponseStatus execute_add_user(Action * action);
+ResponseStatus execute_remove_user(Action * action);
 
 
 #endif
