@@ -47,25 +47,12 @@ static socks5_states connect_destination(struct selector_key * key){
         return ERROR;
     }
 
-    if (connect(client->destination_socket, (struct sockaddr *)&client->destination_addr, client->destination_addr_len) < 0) {
-        if (errno == EINPROGRESS) {
-            if (SELECTOR_SUCCESS != selector_set_interest(key->s, client->client_socket, OP_NOOP)) {
-                close(client->destination_socket);
-                return ERROR;
-            }
-            if (SELECTOR_SUCCESS != selector_register(key->s, client->destination_socket, get_connection_fd_handler(), OP_WRITE, client)) {
-                close(client->destination_socket);
-                return ERROR;
-            }
-            client->connection_attempts++;
-            return REQUEST_CONNECT;
-        } else {
-            close(client->destination_socket);
-            return try_next_address(key);
-        }
+    int connect_result = connect(client->destination_socket, (struct sockaddr *)&client->destination_addr, client->destination_addr_len);
+    if(connect_result < 0 && errno != EINPROGRESS) {
+        close(client->destination_socket);
+        client->destination_socket = -1;  
+        return try_next_address(key);
     }
-    
-    // TODO: manejar los otros casos de error
 
     if (SELECTOR_SUCCESS != selector_set_interest(key->s, client->client_socket, OP_NOOP)) {
         close(client->destination_socket);
@@ -375,12 +362,14 @@ static socks5_states request_connect(struct selector_key * key) {
     if (getsockopt(client->destination_socket, SOL_SOCKET, SO_ERROR, &error, &error_size) != 0) {
         selector_unregister_fd(key->s, client->destination_socket);
         close(client->destination_socket);
+        client->destination_socket = -1;
         return try_next_address(key);
     }
     
     if (error != 0) {
         selector_unregister_fd(key->s, client->destination_socket);
         close(client->destination_socket);
+        client->destination_socket = -1;
         return try_next_address(key);
     }
 
@@ -475,7 +464,10 @@ static socks5_states relay_data_read(struct selector_key * key) {
     }
 
     write_ptr = buffer_write_ptr(target_buffer, &space);
-    n = recv(fd, write_ptr, space, MSG_NOSIGNAL);
+    if (space == 0) {
+        return RELAY_DATA;
+    }
+    n = recv(fd, write_ptr, space, MSG_NOSIGNAL);    
     if (n > 0) {
         buffer_write_adv(target_buffer, n);
         // Habilitar escritura en el otro socket
@@ -569,6 +561,12 @@ static socks5_states try_next_address(struct selector_key * key) {
     if (client->resolved_addr != NULL && client->resolved_addr_current != NULL) {
         client->resolved_addr_current = client->resolved_addr_current->ai_next;
         
+        if (client->destination_socket != -1) {
+            selector_unregister_fd(key->s, client->destination_socket);
+            close(client->destination_socket);
+            client->destination_socket = -1;
+        }
+
         if (client->resolved_addr_current != NULL) {
             client->connection_attempts++;
             return connect_destination(key);
@@ -579,9 +577,9 @@ static socks5_states try_next_address(struct selector_key * key) {
         client->resolved_addr = NULL;
         client->resolved_addr_current = NULL;
     }
-    socks5_reply reply_code = REP_HOST_UNREACHABLE;
-    
-    if (generate_request_response(&client->write_buffer, reply_code, ATYP_IPV4, "0.0.0.0", 0) == -1) {
+
+    // If we reach here, it means all addresses have been tried and failed and errno was set by the last connect attempt.
+    if (generate_request_response(&client->write_buffer, errno, ATYP_IPV4, "0.0.0.0", 0) == -1) {
         return ERROR;
     }
     
@@ -612,13 +610,6 @@ static void* request_resolv_thread(void * arg) {
         client->resolved_addr = result;
         client->resolved_addr_current = result;
         client->connection_attempts = 0;  
-        
-        int addr_count = 0;
-        struct addrinfo *current = result;
-        while (current != NULL) {
-            addr_count++;
-            current = current->ai_next;
-        }
         
         if (result->ai_family == AF_INET) {
             client->destination_domain = AF_INET;
