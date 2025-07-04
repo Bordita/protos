@@ -39,7 +39,10 @@ void close_connection(client_socks5 * client) {
 
     buffer_reset(&client->read_buffer);
     buffer_reset(&client->write_buffer);
-
+    
+    free(client->client_to_dest_buffer.data);
+    free(client->dest_to_client_buffer.data);
+    
     free(client->raw_buffer_a);
     free(client->raw_buffer_b);
     free(client);
@@ -277,4 +280,5 @@ const fd_handler * get_connection_fd_handler(void) {
 
 void server_handler_free(void) {
      selector_destroy(selector);
+     selector_close();
 }

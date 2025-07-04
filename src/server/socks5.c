@@ -430,6 +430,7 @@ static socks5_states request_write(struct selector_key * key) {
 
 static void relay_data_init(unsigned state, struct selector_key * key) {
     client_socks5 * client = (client_socks5 *)key->data;
+    clear_parsing_state(client);
     // Inicializar buffers de relay si no están inicializados
     if (client->raw_buffer_client_to_dest == NULL) {
         client->raw_buffer_client_to_dest = malloc(MAX_SOCKS5_BUFFER_SIZE);
