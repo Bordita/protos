@@ -6,7 +6,7 @@
 
 #define MAX_ACTIONS 16
 #define DEFAULT_IP "127.0.0.1"
-#define DEFAULT_PORT 8080
+#define DEFAULT_PORT 42069
 #define MAX_PORT 65535
 
 #define SUCCESS_VALUE 0
@@ -26,7 +26,7 @@ char *password = NULL;
 
 void add_action(Action action) {
     if (actions_count >= MAX_ACTIONS) {
-        fprintf(stderr, "Demasiadas acciones\n");
+        fprintf(stderr, "[Error] Max flags exceeded\n");
         exit(1);
     }
     actions[actions_count++] = action;
@@ -50,11 +50,6 @@ void _parse_args(int argc, char **argv) {
             add_action(a);
         } else if (strcmp(argv[i], "-ll") == 0) {
             Action a = { .type = ACTION_GET_LOGS, .execute = execute_get_logs };
-            add_action(a);
-        } else if (strcmp(argv[i], "-t") == 0 && i + 1 < argc) {
-            int val = atoi(argv[++i]);
-            Action a = { .type = ACTION_PUT_TIMEOUT, .execute = execute_put_timeout };
-            a.data.timeout.value = val;
             add_action(a);
         } else if (strcmp(argv[i], "-b") == 0 && i + 1 < argc) {
             int val = atoi(argv[++i]);
@@ -100,7 +95,7 @@ void _parse_args(int argc, char **argv) {
                 };
                 add_action(a);
             } else {
-                fprintf(stderr, "Error removing user (expected -rm user)");
+                fprintf(stderr, "[Error] Removing user (expected -rm user)");
                 exit(1);
             }
         } else if (strcmp(argv[i], "-ip") == 0 && i + 1 < argc) {
@@ -112,7 +107,7 @@ void _parse_args(int argc, char **argv) {
     }
 
     if (!username || !password) {
-        fprintf(stderr, "Error credentials not provided (-u user:pass)\n");
+        fprintf(stderr, "[Error] Credentials not provided (-u user:pass)\n");
         exit(1);
     }
 }
@@ -130,7 +125,7 @@ void freeActions(Action * actions){
 }
 
 static void execute_actions(){
-    ResponseStatus execution_status = SUCCESS_RESPONSE;
+    response_status execution_status = SUCCESS_RESPONSE;
     for(int i = 0; i < actions_count; i++){
         execution_status = actions[i].execute(&actions[i]);
         if(execution_status != SUCCESS_RESPONSE){
@@ -143,8 +138,8 @@ static void execute_actions(){
 
 int main(int argc, char ** argv){
     _parse_args(argc, argv);
-    if (port_number <= 0 || port_number > 65535) {
-        fprintf(stderr, "Error: Invalid port specified with -port\n");
+    if (port_number <= 0 || port_number > MAX_PORT) {
+        fprintf(stderr, "[Error] Invalid port specified with -port\n");
         return_value = ERROR_VALUE;
         goto cleanup;
     }
@@ -155,6 +150,8 @@ int main(int argc, char ** argv){
     } else {
         return_value = ERROR_VALUE;
     }
+
+    printf("Closing client connection...\n");
 
 cleanup:
     freeActions(actions);

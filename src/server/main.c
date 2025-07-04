@@ -27,10 +27,6 @@ static void sigterm_handler(const int signal) {
     exit(0);
 }
 
-
-
-
-
 int main(int argc, char *argv[]){
     signal(SIGTERM, sigterm_handler);
     signal(SIGINT, sigterm_handler);
@@ -39,8 +35,6 @@ int main(int argc, char *argv[]){
 
     struct socks5args args;
     parse_args(argc, argv, &args);
-
-  
 
     int retcode = server_handler(args.socks_addr, args.socks_port,
                                 args.mng_addr, args.mng_port);

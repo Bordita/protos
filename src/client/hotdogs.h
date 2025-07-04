@@ -5,17 +5,12 @@
 
 #define SUCCESS_CONNECTING 0
 #define UNSUCCESSFUL_CONNECTION 1
-#define MAX_UNAME_LEN 255
-#define MAX_PASS_LEN 255
-#define AUTH_RESPONSE_LEN 2
-#define VERSION 1
 
 typedef enum {
     ACTION_NONE,
     ACTION_GET_METRICS,
     ACTION_GET_USERS,
     ACTION_GET_LOGS,
-    ACTION_PUT_TIMEOUT,
     ACTION_PUT_BUFFER,
     ACTION_ADD_USER,
     ACTION_REMOVE_USER
@@ -29,22 +24,22 @@ typedef struct Action{
         struct { char *user; char *pass; } add_user;
         struct { char *user; } remove_user;
     } data;
-    ResponseStatus (*execute)(struct Action * action);
+    response_status (*execute)(struct Action * action);
 } Action;
 
-void print_error_msg(ResponseStatus status);
+void print_error_msg(response_status status);
 
 int authenticate(char * uname, char * pass, char * addr, int port);
 
-ResponseStatus execute_get(ReqMethod req, GetOptions opt);
+response_status recv_mod_res(mod_option optn);
+response_status execute_get_request(ReqMethod req, retr_option opt);
+response_status recv_and_print_data(retr_option optn, uint16_t len);
 
-ResponseStatus execute_get_metrics(Action * action);
-ResponseStatus execute_get_users(Action * action);
-ResponseStatus execute_get_logs(Action * action);
-ResponseStatus execute_put_timeout(Action * action);
-ResponseStatus execute_put_buffer(Action * action);
-ResponseStatus execute_add_user(Action * action);
-ResponseStatus execute_remove_user(Action * action);
-
+response_status execute_get_metrics(Action * action);
+response_status execute_get_users(Action * action);
+response_status execute_get_logs(Action * action);
+response_status execute_put_buffer(Action * action);
+response_status execute_add_user(Action * action);
+response_status execute_remove_user(Action * action);
 
 #endif

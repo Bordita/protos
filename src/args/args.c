@@ -82,7 +82,7 @@ void parse_args(const int argc, char** argv, struct socks5args* args){
     args->socks_port = "1080";
 
     args->mng_addr = "127.0.0.1";
-    args->mng_port = "8080";
+    args->mng_port = "42069";
 
     args->disectors_enabled = true;
 

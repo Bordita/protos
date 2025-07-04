@@ -86,7 +86,7 @@ int authenticate(char * uname, char * pass, char * addr, int port){
     }
 
     uint8_t ans[AUTH_RESPONSE_LEN] = {0};
-    if(recv(fd, ans, AUTH_RESPONSE_LEN, MSG_WAITALL) < 0){
+    if(recv(fd, &ans, AUTH_RESPONSE_LEN, MSG_WAITALL) < 0){
         fprintf(stderr, "[Error] Authentication: Unable to receive authentication confirmation\n");
         return UNSUCCESSFUL_CONNECTION;
     }
@@ -104,85 +104,142 @@ int authenticate(char * uname, char * pass, char * addr, int port){
     return SUCCESS_CONNECTING;
 }
 
-ResponseStatus execute_get(ReqMethod req, GetOptions opt){
-    uint8_t request[2] = {0};
-    request[0] = (uint8_t)req;
-    request[1] = (uint8_t)opt;
-    if(send(fd, &request, 2, 0) < 0){
+response_status execute_get_metrics(Action * action){
+    (void)action;
+    response_status request_status = execute_get_request(RETR, METRICS);
+    if(request_status != SUCCESS_RESPONSE){
+        return request_status;
+    }
+
+    uint8_t res[BASE_RESPONSE_LEN + METRICS_RESPONSE_LEN];
+    if(recv(fd, &res, BASE_RESPONSE_LEN + METRICS_RESPONSE_LEN, MSG_WAITALL) < (BASE_RESPONSE_LEN + METRICS_RESPONSE_LEN)){
         return WHO_LET_BRO_COOK_RESPONSE;
     }
 
-    uint8_t first_response[5] = {0};
-    if(recv(fd, &first_response, 5, MSG_WAITALL) < 5){
+    if(res[0] != RETR || res[1] != METRICS){
         return WHO_LET_BRO_COOK_RESPONSE;
+    } else if (res[2] != SUCCESS_RESPONSE){
+        return res[2];
     }
 
-    if((uint8_t)first_response[2] != SUCCESS_RESPONSE) {
-       return (uint8_t)first_response[2];
+    uint32_t historic_connections = *(uint32_t*)&res[BASE_RESPONSE_LEN];
+    uint32_t current_connections = *(uint32_t*)&res[BASE_RESPONSE_LEN + 4];
+    uint32_t failed_connections = *(uint32_t*)&res[BASE_RESPONSE_LEN + 4*2];
+    uint32_t bytes_transfered = *(uint32_t*)&res[BASE_RESPONSE_LEN + 4*3];
+
+    printf("Server metrics:\n");
+    printf("  Historic connections: %u\n", historic_connections);
+    printf("  Current connections: %u\n", current_connections);
+    if (historic_connections > 0) {
+        double fail_percentage = (double)failed_connections / historic_connections * 100.0;
+        printf("  Fail percentage: %.2f%%\n", fail_percentage);
+    } else {
+        printf("  Fail percentage: N/A (no historic connections)\n");
     }
+    printf("  Bytes transferred: %u\n", bytes_transfered);
 
-    uint16_t data_len = *(uint16_t *)&first_response[3];
-    uint8_t * data = malloc(data_len);
-    if(data == NULL){
-        return WHO_LET_BRO_COOK_RESPONSE;
-    }
-
-    if(recv(fd, data, data_len, MSG_WAITALL) < data_len){
-        free(data);
-        return WHO_LET_BRO_COOK_RESPONSE;
-    }
-
-    // Do something with the data, maybe print it idk, should rethink it.
-    fwrite(data, 1, data_len, stdout);
-    printf("\n");
-
-    free(data);
     return SUCCESS_RESPONSE;
+    
 }
 
-ResponseStatus execute_get_metrics(Action * action){
-    action->type = action->type;
+response_status execute_get_users(Action * action){
+    (void)action;
+    response_status request_status = execute_get_request(RETR, LIST_USERS);
+    if(request_status != SUCCESS_RESPONSE){
+        return request_status;
+    }
 
-    return execute_get(RETR, METRICS);
+    uint8_t first_res[BASE_RESPONSE_LEN + DATA_LEN];
+    if(recv(fd, &first_res, BASE_RESPONSE_LEN + DATA_LEN, MSG_WAITALL) < (BASE_RESPONSE_LEN + DATA_LEN)){
+        return WHO_LET_BRO_COOK_RESPONSE;
+    }
+
+    if(first_res[0] != RETR || first_res[1] != METRICS){
+        return WHO_LET_BRO_COOK_RESPONSE;
+    } else if (first_res[2] != SUCCESS_RESPONSE){
+        return first_res[2];
+    }
+
+    uint16_t data_len = *(uint16_t *)&first_res[BASE_RESPONSE_LEN];
+    return recv_and_print_data(LIST_USERS, data_len);
 }
 
-ResponseStatus execute_get_users(Action * action){
-    action->type = action->type;
+response_status execute_get_logs(Action * action){
+    (void)action;
+    response_status request_status = execute_get_request(RETR, LIST_LOGS);
+    if(request_status != SUCCESS_RESPONSE){
+        return request_status;
+    }
+    
+    uint8_t first_res[BASE_RESPONSE_LEN + DATA_LEN];
+    if(recv(fd, &first_res, BASE_RESPONSE_LEN + DATA_LEN, MSG_WAITALL) < (BASE_RESPONSE_LEN + DATA_LEN)){
+        return WHO_LET_BRO_COOK_RESPONSE;
+    }
 
-    return execute_get(RETR, LIST_USERS);
+    if(first_res[0] != RETR || first_res[1] != METRICS){
+        return WHO_LET_BRO_COOK_RESPONSE;
+    } else if (first_res[2] != SUCCESS_RESPONSE){
+        return first_res[2];
+    }
+
+    uint16_t data_len = *(uint16_t *)&first_res[BASE_RESPONSE_LEN];
+    return recv_and_print_data(LIST_LOGS, data_len);
 }
 
-ResponseStatus execute_get_logs(Action * action){
-    action->type = action->type;
+response_status execute_put_buffer(Action * action){
+    uint16_t new_size = (uint16_t)action->data.buffer.value;
+    uint8_t req[BASE_REQUEST_LEN + 2] = {0};
+    req[0] = MOD;
+    req[1] = BUF_SIZE;
+    req[2] = (new_size >> 8) & 0xFF;
+    req[3] = new_size & 0xFF;
 
-    return execute_get(RETR, LIST_LOGS);
+    if(send(fd, req, 4, 0) < 0){
+        return WHO_LET_BRO_COOK_RESPONSE;
+    }
+    return recv_mod_res(BUF_SIZE);
 }
 
-ResponseStatus execute_put_timeout(Action * action){
-    action->type = action->type;
-    printf("Executing put timeout\n");
-    return 0;
+response_status execute_add_user(Action * action){
+    char *user = action->data.add_user.user;
+    char *pass = action->data.add_user.pass;
+    uint8_t uname_len = strlen(user);
+    uint8_t pass_len = strlen(pass);
+    uint8_t req[BASE_REQUEST_LEN + 2 + MAX_UNAME_LEN + MAX_PASS_LEN] = {0};
+    size_t idx = 0;
+    req[idx++] = MOD;
+    req[idx++] = ADD_USER;
+    req[idx++] = uname_len;
+    memcpy(&req[idx], user, uname_len);
+    idx += uname_len;
+    req[idx++] = pass_len;
+    memcpy(&req[idx], pass, pass_len);
+    idx += pass_len;
+
+    if(send(fd, req, idx, 0) < 0){
+        return WHO_LET_BRO_COOK_RESPONSE;
+    }
+    return recv_mod_res(ADD_USER);
 }
 
-ResponseStatus execute_put_buffer(Action * action){
-    action->type = action->type;
-    printf("Executing put buffer\n");
-    return 0;
+response_status execute_remove_user(Action * action){
+    char *user = action->data.remove_user.user;
+    uint8_t uname_len = strlen(user);
+    uint8_t req[BASE_REQUEST_LEN + 1 + MAX_UNAME_LEN] = {0};
+    size_t idx = 0;
+    req[idx++] = MOD;
+    req[idx++] = REMOVE_USER;
+    req[idx++] = uname_len;
+    memcpy(&req[idx], user, uname_len);
+    idx += uname_len;
+
+    if(send(fd, req, idx, 0) < 0){
+        return WHO_LET_BRO_COOK_RESPONSE;
+    }
+    return recv_mod_res(REMOVE_USER);
 }
 
-ResponseStatus execute_add_user(Action * action){
-    action->type = action->type;
-    printf("Executing add user\n");
-    return 0;
-}
-
-ResponseStatus execute_remove_user(Action * action){
-    action->type = action->type;
-    printf("Executing remove user\n");
-    return 0;
-}
-
-void print_error_msg(ResponseStatus status){
+void print_error_msg(response_status status){
     if(status == SUCCESS_RESPONSE){
         return;
     }
@@ -197,7 +254,62 @@ void print_error_msg(ResponseStatus status){
         case NO_SUCH_BUN:
             fprintf(stderr, "[Error] User not found\n");
             return;
-        case WHO_LET_BRO_COOK_RESPONSE:
+        default:
             fprintf(stderr, "[Error] Generic Server Error\n");
     }
+}
+
+response_status recv_and_print_data(retr_option optn, uint16_t len){
+    uint8_t * data = malloc(len);
+    if(data == NULL){
+        return WHO_LET_BRO_COOK_RESPONSE;
+    }
+
+    if(recv(fd, data, len, MSG_WAITALL) < len){
+        free(data);
+        return WHO_LET_BRO_COOK_RESPONSE;
+    }
+
+    switch(optn){
+        case LIST_USERS:
+            printf("Listing Server Users:\n");
+            break;
+        default:
+            printf("Listing Server Logs:\n");
+    }
+
+    int entry = 1;
+    char *token = strtok((char *)data, "\r");
+    while(token != NULL) {
+        printf("   [ %d ] %s\n", entry++, token);
+        token = strtok(NULL, "\r");
+    }
+
+    free(data);
+    return SUCCESS_RESPONSE;
+}
+
+response_status execute_get_request(ReqMethod req, retr_option opt){
+    uint8_t request[2] = {0};
+    request[0] = (uint8_t)req;
+    request[1] = (uint8_t)opt;
+    if(send(fd, &request, 2, 0) < 0){
+        return WHO_LET_BRO_COOK_RESPONSE;
+    }
+
+    return SUCCESS_RESPONSE;
+}
+
+response_status recv_mod_res(mod_option optn){
+    uint8_t res[BASE_RESPONSE_LEN] = {0};
+
+    if(recv(fd, &res, BASE_RESPONSE_LEN, MSG_WAITALL) < BASE_RESPONSE_LEN){
+        return WHO_LET_BRO_COOK_RESPONSE;
+    }
+
+    if(res[0] != MOD || res[1] != optn){
+        return WHO_LET_BRO_COOK_RESPONSE;
+    }
+
+    return res[2];
 }
