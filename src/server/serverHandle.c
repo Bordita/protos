@@ -11,6 +11,7 @@
 #include "../shared/metrics.h"
 #include "greeting.h"
 #include "socks5.h"
+#include "../shared/netutils.h"
 
 static char * error_msg;
 static fd_selector selector;
@@ -139,6 +140,11 @@ static void passive_socket_handler(struct selector_key *key) {
         close_connection(client);
         return;
     }
+
+    printf("\nClient connected to passive socket:\n");
+    printf("\tfd: %d\n", client->client_socket);
+    char buff[128] = {0};
+    printf("\taddress: %s\n", sockaddr_to_human(buff, sizeof(buff), &client->client_addr));
 }
 
 const struct fd_handler passive_socket_fd_handler = {passive_socket_handler,0,0,0};
@@ -237,19 +243,27 @@ int server_handler(char * socks_addr, char * socks_port, char * hot_dogs_addr,ch
         goto finally;
     }
 
+    printf("\nSelector initialized -> ");
+
     selector = selector_new(INITIAL_SELECTOR_ITEMS);
     if (selector == NULL) {
         error_msg = "Error creating the selector";
         goto finally;
     }
 
+    printf("Selector created -> ");
+
     if ((fd_socks = create_socket(socks_addr,socks_port,&passive_socket_fd_handler,AF_UNSPEC)) == -1){   
         goto finally;
     }
 
+    printf("Socks socket created with fd: %d -> ", fd_socks);
+
     if ((fd_hot_dogs = create_socket(hot_dogs_addr,hot_dogs_port,&passive_socket_fd_handler,AF_UNSPEC)) == -1){   
         goto finally;
     }
+
+    printf("Hot dogs socket created with fd: %d -> Starting to read\n", fd_hot_dogs);
 
     while (1) {
         int selector_status = selector_select(selector);

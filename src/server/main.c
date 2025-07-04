@@ -40,11 +40,12 @@ int main(int argc, char *argv[]){
     struct socks5args args;
     parse_args(argc, argv, &args);
 
-  
+    printf("\n\n---------------- START OF SOCKS5 DEBUGGING ----------------\n\n");
 
-    int retcode = server_handler(args.socks_addr, args.socks_port,
-                                args.mng_addr, args.mng_port);
+    printf("Arguments read:\n");
+    printf("\tSocks5 Address: %s\n\tSocks5 Port: %s\n\tHot Dogs Address: %s\n\tHot Dogs Port: %s\n", args.socks_addr, args.socks_port, args.mng_addr, args.mng_port);
 
+    int retcode = server_handler(args.socks_addr, args.socks_port, args.mng_addr, args.mng_port);
 
     server_handler_free();
     return retcode;

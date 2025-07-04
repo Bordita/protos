@@ -6,6 +6,7 @@
 #include "../shared/buffer.h"
 #include "socks5.h"
 #include "../shared/auth.h"
+#include <stdio.h>
 
 // Actions for the greeting parser 
 static void act_version(struct parser_event *ret, const uint8_t c) {
@@ -94,6 +95,8 @@ greeting_event_type parser_read(client_socks5 * client, struct buffer *buffer) {
             last_event = event->type;
             switch (event->type) {
                 case GREETING_EVENT_VERSION_OK:
+                    printf("\nGREETING:\n");
+                    printf("\tVersion: %d\n", byte);
                     break;
                     
                 case GREETING_EVENT_VERSION_ERROR:
@@ -108,7 +111,8 @@ greeting_event_type parser_read(client_socks5 * client, struct buffer *buffer) {
                     if (client->parsing_state.greeting.methods_read < client->parsing_state.greeting.expected_methods) {
                         client->parsing_state.greeting.received_methods[client->parsing_state.greeting.methods_read] = byte;
                         client->parsing_state.greeting.methods_read++;
-                        
+
+                        printf("\tMethod: %d\n", byte);
                         
                         if (client->parsing_state.greeting.methods_read == client->parsing_state.greeting.expected_methods) {
                             client->selected_method = METHOD_NO_ACCEPTABLE_METHODS;
@@ -116,9 +120,11 @@ greeting_event_type parser_read(client_socks5 * client, struct buffer *buffer) {
                             for (int i = 0; i < client->parsing_state.greeting.methods_read; i++) {
                                 if (client->parsing_state.greeting.received_methods[i] == METHOD_NO_AUTHENTICATION_REQUIRED && !authentication_enabled()) { 
                                     client->selected_method = METHOD_NO_AUTHENTICATION_REQUIRED;
+                                    printf("\tSelected no authentication\n");
                                     break;
                                 } else if (client->parsing_state.greeting.received_methods[i] == METHOD_USERNAME_PASSWORD) { 
                                     client->selected_method = METHOD_USERNAME_PASSWORD;
+                                    printf("\tSelected username/password authentication\n");
                                 }
                             }
                             return GREETING_EVENT_DONE;

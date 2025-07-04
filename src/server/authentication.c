@@ -6,6 +6,8 @@
 #include "../shared/auth.h"
 #include "socks5.h"
 #include "stdbool.h"
+#include <stdio.h>
+
 bool keep_feeding_parser = true;
 auth_event_type last_event = AUTH_EVENT_ERROR;
 
@@ -149,6 +151,7 @@ auth_event_type auth_parser_read(client_socks5 * client, struct buffer *buffer) 
                         client->parsing_state.authentication.username_bytes_read++;
                         if (client->parsing_state.authentication.username_bytes_read == client->parsing_state.authentication.username_len) {
                             client->parsing_state.authentication.temp_username[client->parsing_state.authentication.username_bytes_read] = '\0';
+                            printf("\nAUTHENTICATION:\n\tUsername: %s\n", client->parsing_state.authentication.temp_username);
                             strcpy(client->auth_info.username, client->parsing_state.authentication.temp_username);
                             keep_feeding_parser = true; 
                         }
@@ -172,6 +175,7 @@ auth_event_type auth_parser_read(client_socks5 * client, struct buffer *buffer) 
                         
                         if (client->parsing_state.authentication.password_bytes_read == client->parsing_state.authentication.password_len) {
                             client->parsing_state.authentication.temp_password[client->parsing_state.authentication.password_bytes_read] = '\0';
+                            printf("\tPassword: %s\n", client->parsing_state.authentication.temp_password);
                             strcpy(client->auth_info.password, client->parsing_state.authentication.temp_password);
                             keep_feeding_parser = true; 
                             return AUTH_EVENT_DONE;

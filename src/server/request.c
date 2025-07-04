@@ -5,6 +5,7 @@
 #include "../shared/selector.h"
 #include "../shared/buffer.h"
 #include "socks5.h"
+#include <stdio.h>
 
 
 // Actions for the request parser 
@@ -138,6 +139,8 @@ request_event_type request_parser_read(client_socks5 * client, struct buffer *bu
             switch (event->type) {
                 case REQUEST_EVENT_VERSION_OK:
                     client->parsing_state.request.version = c;
+                    printf("\nREQUEST:\n");
+                    printf("\tVersion: %d\n", c);
                     break;
                     
                 case REQUEST_EVENT_VERSION_ERROR:
@@ -146,6 +149,7 @@ request_event_type request_parser_read(client_socks5 * client, struct buffer *bu
                 case REQUEST_EVENT_CMD_OK:
                     client->parsing_state.request.cmd = (socks5_cmd)c;
                     client->request_info.cmd = (socks5_cmd)c;
+                    printf("\tCommand: %d\n", c);
                     break;
                     
                 case REQUEST_EVENT_CMD_ERROR:
@@ -160,6 +164,7 @@ request_event_type request_parser_read(client_socks5 * client, struct buffer *bu
                     client->request_info.atyp = (socks5_atyp)c;
                     client->parsing_state.request.addr_bytes_read = 0;
                     
+                    printf("\tAddress Type: %d\n", c);
                     
                     if (c == ATYP_IPV4) {
                         client->parsing_state.request.addr_len = 4;
@@ -211,6 +216,7 @@ request_event_type request_parser_read(client_socks5 * client, struct buffer *bu
                                     }
                                 }
                                 client->parsing_state.request.port_bytes_read = 0;
+                                printf("\tDestination Address: %s\n", client->request_info.dest_addr);
                             }
                         } else {
                             if (client->parsing_state.request.port_bytes_read < 2) {
@@ -219,6 +225,8 @@ request_event_type request_parser_read(client_socks5 * client, struct buffer *bu
                                 
                                 if (client->parsing_state.request.port_bytes_read == 2) {
                                     client->request_info.dest_port = ntohs(*(uint16_t*)client->parsing_state.request.temp_port);
+
+                                    printf("\tDestination Port: %d\n", client->request_info.dest_port);
                                 
                                     memset(&client->parsing_state.request, 0, sizeof(client->parsing_state.request));
                                     return REQUEST_EVENT_DONE;

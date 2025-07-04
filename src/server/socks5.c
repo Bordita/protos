@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
+#include "../shared/netutils.h"
 
 
 static void* request_resolv_thread(void * arg);
@@ -114,6 +115,13 @@ static socks5_states greeting_write(struct selector_key * key) {
     client_socks5 * client = (client_socks5 *)key->data;
     size_t count;
     uint8_t * bufptr = buffer_read_ptr(&client->write_buffer, &count);
+
+    printf("\nGREETING RESPONSE:\n\t");
+    for (size_t i = 0; i < count; i++) {
+        printf("%d ", bufptr[i]);
+    }
+    printf("\n");
+
     ssize_t len = send(client->client_socket, bufptr, count, MSG_NOSIGNAL);
     if (len <= 0) {
         return ERROR;
@@ -155,6 +163,7 @@ static socks5_states authentication_read(struct selector_key * key) {
     auth_event_type event = auth_parser_read(client, &client->read_buffer);
     if (event == AUTH_EVENT_DONE) {
         if (authenticate_credentials(client->auth_info) != AUTH_STATUS_SUCCESS) {
+            printf("\tResult: FAILED\n");
             client->auth_info.authenticated = false;
             if(generate_auth_response(&client->write_buffer, AUTH_STATUS_FAILURE) != 0) {
                 return ERROR;
@@ -164,6 +173,7 @@ static socks5_states authentication_read(struct selector_key * key) {
             }
             return AUTHENTICATION_WRITE;
         }
+        printf("\tResult: SUCCESS\n");
         client->auth_info.authenticated = true;
         if (generate_auth_response(&client->write_buffer, AUTH_STATUS_SUCCESS) != 0) {
             return ERROR;
@@ -362,6 +372,9 @@ static socks5_states request_resolv(struct selector_key * key) {
     if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
         return ERROR;
     }
+
+    char buff[256];
+    printf("\nRESOLVE:\n\tResolved address: %s\n", sockaddr_to_human(buff, sizeof(buff), &client->destination_addr));
     
     return connect_destination(key);
 }
@@ -424,6 +437,19 @@ static socks5_states request_write(struct selector_key * key) {
      size_t count;
     uint8_t * bufptr = buffer_read_ptr(&client->write_buffer, &count);
     ssize_t len = send(client->client_socket, bufptr, count, MSG_NOSIGNAL);
+
+    printf("\nREQUEST RESPONSE:\n");
+    printf("\tVersion: %d\n", bufptr[0]);
+    printf("\tReply: %d\n", bufptr[1]);
+    printf("\tAddress Type: %d\n", bufptr[3]);
+    printf("\tAddress: ");
+    for (size_t i = 5; i < 5 + bufptr[4]; i++) {
+        printf("%c", bufptr[i]);
+    }
+    printf("\n");
+    uint16_t port = (bufptr[5 + bufptr[4]] << 8) | bufptr[6 + bufptr[4]];
+    printf("\tPort: %d\n", port);
+
     if (len == -1) {
         return ERROR;
     }
