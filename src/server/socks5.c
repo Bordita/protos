@@ -20,6 +20,30 @@ static socks5_states try_next_address(struct selector_key * key);
 
 uint32_t buffer_size = MAX_SOCKS5_BUFFER_SIZE; 
 
+socks5_reply errno_to_socks5_reply(int err) {
+    switch (err) {
+        case ECONNREFUSED:
+            return REP_CONNECTION_REFUSED;
+        case ETIMEDOUT:
+            return REP_HOST_UNREACHABLE;
+        case ENETUNREACH:
+            return REP_NETWORK_UNREACHABLE;
+        case EHOSTUNREACH:
+        case EADDRNOTAVAIL:
+            return REP_HOST_UNREACHABLE;
+        case EACCES:
+            return REP_CONNECTION_NOT_ALLOWED;
+        case EAFNOSUPPORT:
+        case EINVAL:
+            return REP_ADDRESS_TYPE_NOT_SUPPORTED;
+        case ENOTSOCK:
+            return REP_GENERAL_FAILURE;
+        default:
+            return REP_GENERAL_FAILURE;
+    }
+}
+
+
 static inline void clear_parsing_state(client_socks5 *client) {
     parser_destroy(client->parser);
     memset(&client->parsing_state, 0, sizeof(client->parsing_state));
@@ -580,7 +604,7 @@ static socks5_states try_next_address(struct selector_key * key) {
     }
 
     // If we reach here, it means all addresses have been tried and failed and errno was set by the last connect attempt.
-    if (generate_request_response(&client->write_buffer, errno, ATYP_IPV4, "0.0.0.0", 0) == -1) {
+    if (generate_request_response(&client->write_buffer, errno_to_socks5_rep(errno), ATYP_IPV4, "0.0.0.0", 0) == -1) {
         return ERROR;
     }
     
