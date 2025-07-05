@@ -604,7 +604,7 @@ static socks5_states try_next_address(struct selector_key * key) {
     }
 
     // If we reach here, it means all addresses have been tried and failed and errno was set by the last connect attempt.
-    if (generate_request_response(&client->write_buffer, errno_to_socks5_rep(errno), ATYP_IPV4, "0.0.0.0", 0) == -1) {
+    if (generate_request_response(&client->write_buffer, errno_to_socks5_reply(errno), ATYP_IPV4, "0.0.0.0", 0) == -1) {
         return ERROR;
     }
     
