@@ -458,12 +458,12 @@ static void relay_data_init(unsigned state, struct selector_key * key) {
     clear_parsing_state(client);
     // Inicializar buffers de relay si no están inicializados
     if (client->raw_buffer_client_to_dest == NULL) {
-        client->raw_buffer_client_to_dest = malloc(MAX_SOCKS5_BUFFER_SIZE);
-        buffer_init(&client->client_to_dest_buffer, MAX_SOCKS5_BUFFER_SIZE, client->raw_buffer_client_to_dest);
+        client->raw_buffer_client_to_dest = malloc(buffer_size);
+        buffer_init(&client->client_to_dest_buffer, buffer_size, client->raw_buffer_client_to_dest);
     }
     if (client->raw_buffer_dest_to_client == NULL) {
-        client->raw_buffer_dest_to_client = malloc(MAX_SOCKS5_BUFFER_SIZE);
-        buffer_init(&client->dest_to_client_buffer, MAX_SOCKS5_BUFFER_SIZE, client->raw_buffer_dest_to_client);
+        client->raw_buffer_dest_to_client = malloc(buffer_size);
+        buffer_init(&client->dest_to_client_buffer, buffer_size, client->raw_buffer_dest_to_client);
     }
 }   
 
