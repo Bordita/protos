@@ -155,6 +155,7 @@ typedef struct client_socks5 {
 
 
 uint32_t socks_get_buffer_size(void);
+void socks_set_buffer_size(uint32_t new_buff_size);
 const struct state_definition * get_socks5_states(void);
 
 #endif

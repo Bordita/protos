@@ -690,3 +690,11 @@ const struct state_definition * get_socks5_states(void) { return states; }
 uint32_t socks_get_buffer_size(void) {
     return buffer_size;
 }
+
+void socks_set_buffer_size(uint32_t new_buff_size) {
+    if (new_buff_size <= 0 || new_buff_size > MAX_SOCKS5_BUFFER_SIZE) {
+        return;
+    }
+
+    buffer_size = new_buff_size;
+}
