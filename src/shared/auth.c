@@ -91,6 +91,30 @@ void destroy_user_list(void) {
     users_list = NULL; // Reset the head of the list
 }
 
+uint16_t get_users_separator(char *buffer, size_t buffer_size, const char *separator, size_t separator_size) {
+    if (buffer == NULL || buffer_size < separator_size) {
+        return 0; // Invalid buffer or insufficient size
+    }
+    
+    buffer[0] = '\0';
+
+    UserList *current = users_list;
+    uint16_t current_len = 0;
+     while (current != NULL) {
+        size_t len = strlen(current->username);
+        
+        if (current_len + len + separator_size + 1 > buffer_size) {
+            break; // No hay más espacio
+        }
+        
+        strncat(buffer, current->username, len);
+        strncat(buffer, separator, separator_size);
+        
+        current_len += len + separator_size;
+        current = current->next;
+    }
+    return current_len;
+}
 
 UserList * create_user(const char *username, const char *password) {
     UserList * new_user = (UserList *) malloc(sizeof(UserList));
