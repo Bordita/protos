@@ -100,7 +100,6 @@ int authenticate(char * uname, char * pass, char * addr, int port){
         fprintf(stderr, "[Error] Authentication: Invalid credentials. Code %d\n", ans[1]);
         return UNSUCCESSFUL_CONNECTION;
     }
-
     return SUCCESS_CONNECTING;
 }
 
@@ -122,10 +121,25 @@ response_status execute_get_metrics(Action * action){
         return res[2];
     }
 
-    uint32_t historic_connections = *(uint32_t*)&res[BASE_RESPONSE_LEN];
-    uint32_t current_connections = *(uint32_t*)&res[BASE_RESPONSE_LEN + 4];
-    uint32_t failed_connections = *(uint32_t*)&res[BASE_RESPONSE_LEN + 4*2];
-    uint32_t bytes_transfered = *(uint32_t*)&res[BASE_RESPONSE_LEN + 4*3];
+    uint32_t historic_connections = ((uint32_t)res[3] << 24) | 
+                                   ((uint32_t)res[4] << 16) | 
+                                   ((uint32_t)res[5] << 8) | 
+                                   (uint32_t)res[6];
+    
+    uint32_t current_connections = ((uint32_t)res[7] << 24) | 
+                                  ((uint32_t)res[8] << 16) | 
+                                  ((uint32_t)res[9] << 8) | 
+                                  (uint32_t)res[10];
+    
+    uint32_t failed_connections = ((uint32_t)res[11] << 24) | 
+                                 ((uint32_t)res[12] << 16) | 
+                                 ((uint32_t)res[13] << 8) | 
+                                 (uint32_t)res[14];
+    
+    uint32_t bytes_transfered = ((uint32_t)res[15] << 24) | 
+                               ((uint32_t)res[16] << 16) | 
+                               ((uint32_t)res[17] << 8) | 
+                               (uint32_t)res[18];
 
     printf("Server metrics:\n");
     printf("  Historic connections: %u\n", historic_connections);
@@ -154,13 +168,13 @@ response_status execute_get_users(Action * action){
         return WHO_LET_BRO_COOK_RESPONSE;
     }
 
-    if(first_res[0] != RETR || first_res[1] != METRICS){
+    if(first_res[0] != RETR || first_res[1] != LIST_USERS){
         return WHO_LET_BRO_COOK_RESPONSE;
     } else if (first_res[2] != SUCCESS_RESPONSE){
         return first_res[2];
     }
 
-    uint16_t data_len = *(uint16_t *)&first_res[BASE_RESPONSE_LEN];
+    uint16_t data_len = ((uint16_t)first_res[3] << 8) | (uint16_t)first_res[4];
     return recv_and_print_data(LIST_USERS, data_len);
 }
 
@@ -176,13 +190,13 @@ response_status execute_get_logs(Action * action){
         return WHO_LET_BRO_COOK_RESPONSE;
     }
 
-    if(first_res[0] != RETR || first_res[1] != METRICS){
+    if(first_res[0] != RETR || first_res[1] != LIST_LOGS){
         return WHO_LET_BRO_COOK_RESPONSE;
     } else if (first_res[2] != SUCCESS_RESPONSE){
         return first_res[2];
     }
 
-    uint16_t data_len = *(uint16_t *)&first_res[BASE_RESPONSE_LEN];
+    uint16_t data_len = ((uint16_t)first_res[3] << 8) | (uint16_t)first_res[4];
     return recv_and_print_data(LIST_LOGS, data_len);
 }
 
@@ -269,7 +283,6 @@ response_status recv_and_print_data(retr_option optn, uint16_t len){
         free(data);
         return WHO_LET_BRO_COOK_RESPONSE;
     }
-
     switch(optn){
         case LIST_USERS:
             printf("Listing Server Users:\n");

@@ -124,7 +124,7 @@ void freeActions(Action * actions){
     }
 }
 
-static void execute_actions(){
+static void execute_actions(void){
     response_status execution_status = SUCCESS_RESPONSE;
     for(int i = 0; i < actions_count; i++){
         execution_status = actions[i].execute(&actions[i]);
@@ -150,7 +150,6 @@ int main(int argc, char ** argv){
     } else {
         return_value = ERROR_VALUE;
     }
-
     printf("Closing client connection...\n");
 
 cleanup:
