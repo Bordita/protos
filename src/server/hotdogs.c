@@ -90,8 +90,6 @@ const struct state_definition * get_hotdogs_states(void) {
 // Manage the authentication read
 static unsigned hotdogs_auth_read(struct selector_key *key) {
     client_hotdogs *client = (client_hotdogs *)key->data;
-    
-    printf("Reading auth....\n");
 
     // Read data from the socket into the read buffer
     size_t count;
@@ -206,8 +204,6 @@ static unsigned hotdogs_auth_read(struct selector_key *key) {
 // Manage the authentication response
 static unsigned hotdogs_auth_response(struct selector_key *key) {
     client_hotdogs *client = (client_hotdogs *)key->data;
-
-    printf("Auth response....\n");
 
     // Send client auth
     size_t count;
@@ -517,10 +513,10 @@ static bool prepare_users_response(client_hotdogs *client) {
     uint64_t transfered_bytes = BASE_RESPONSE_LEN;
     
     if (client->current_response_status == SUCCESS_RESPONSE) {
-        char users_data[2048];        
+        char users_data[MAX_DATA_SIZE];        
         users_data[0] = '\0';
 
-        uint16_t user_data_len = get_users_separator(users_data, sizeof(users_data), USERS_SEPARATOR, USERS_SEPARATOR_SIZE);
+        uint16_t user_data_len = get_users_separator(users_data, sizeof(users_data), SEPARATOR, SEPARATOR_SIZE);
 
         if (size < BASE_RESPONSE_LEN + DATA_LEN + user_data_len) {
             return false;

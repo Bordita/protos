@@ -4,8 +4,10 @@
 #define MAX_HOTDOGS_BUFFER_SIZE 1024
 #define BUFFER_SIZE_BYTES_SOCKS5 2
 
-#define USERS_SEPARATOR "\r\0"
-#define USERS_SEPARATOR_SIZE 2
+#define SEPARATOR "\0\r"
+#define SEPARATOR_SIZE 2
+
+#define MAX_DATA_SIZE 2^16 - 1
 
 
 #include <netdb.h>
