@@ -100,7 +100,7 @@ uint16_t get_users_separator(char *buffer, size_t buffer_size, const char *separ
 
     UserList *current = users_list;
     uint16_t current_len = 0;
-     while (current != NULL) {
+    while (current != NULL) {
         size_t len = strlen(current->username);
         
         if (current_len + len + separator_size + 1 > buffer_size) {

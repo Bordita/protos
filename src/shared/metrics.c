@@ -3,6 +3,7 @@
 typedef struct {
     uint64_t socks5_current_connections;
     uint64_t hdp_current_connections;
+    uint32_t failed_connections;
     uint64_t total_transfered_bytes;
     uint64_t historic_connections;
 } Metrics;
@@ -11,7 +12,8 @@ static Metrics metrics = {
     .socks5_current_connections = 0,
     .hdp_current_connections = 0,
     .total_transfered_bytes = 0,
-    .historic_connections = 0
+    .historic_connections = 0,
+    .failed_connections = 0
 };
 
 void add_socks5_current_connection(void){
@@ -36,6 +38,14 @@ void remove_hdp_current_connection(void){
 
 void add_transfered_bytes(int bytes){
     metrics.total_transfered_bytes += bytes;
+}
+
+void add_failed_connection(void) {
+    metrics.failed_connections++;
+}
+
+int get_failed_connections(void) {
+    return metrics.failed_connections;
 }
 
 int get_socks5_current_connections(void){

@@ -15,6 +15,9 @@ int get_hdp_current_connections(void);
 
 void add_transfered_bytes(int bytes); // Add bytes to the total transfer bytes
 
+void add_failed_connection(void); // Add a failed connection
+
+int get_failed_connections(void); // Get the number of failed connections
 int get_current_connections(void);    // Get the number of current connections
 int get_transfered_bytes(void);            // Get the total transfer bytes
 int get_historic_connections(void);    // Get the total number of connections
