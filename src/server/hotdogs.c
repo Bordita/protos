@@ -241,20 +241,16 @@ static unsigned hotdogs_auth_response(struct selector_key *key) {
 static unsigned hotdogs_request_read(struct selector_key *key) {
     client_hotdogs *client = (client_hotdogs *)key->data;
 
-    printf("Reading request.....\n");
-
     // Read data from the socket into the read buffer
     size_t count;
     uint8_t *bufptr = buffer_write_ptr(&client->read_buffer, &count);
     ssize_t len = recv(client->client_socket, bufptr, count, MSG_NOSIGNAL);
     
     if(len == 0) {
-        printf("HOT DONE\n");
         return HOTDOGS_DONE;
     }
 
     if (len < 0) {
-        printf("HOT ERROR\n");
         return HOTDOGS_ERROR;
     }
     
@@ -314,8 +310,6 @@ static unsigned hotdogs_request_read(struct selector_key *key) {
 static unsigned hotdogs_response_write(struct selector_key *key) {
     client_hotdogs *client = (client_hotdogs *)key->data;
 
-    printf("Sending response....\n");
-
     // Send response to the client
     size_t count;
     uint8_t *bufptr = buffer_read_ptr(&client->write_buffer, &count);
@@ -331,11 +325,9 @@ static unsigned hotdogs_response_write(struct selector_key *key) {
     }
     
     buffer_read_adv(&client->write_buffer, len);
-    printf("Sent %zd bytes successfully\n", len);
     
     // Verify if was send
     if (!buffer_can_read(&client->write_buffer)) {
-        printf("Response sent completely\n");
         
         // Change to read 
         if (selector_set_interest_key(key, OP_READ) != SELECTOR_SUCCESS) {
@@ -349,13 +341,12 @@ static unsigned hotdogs_response_write(struct selector_key *key) {
 }
 
 static unsigned hotdogs_done_handler(struct selector_key *key) {
-    printf("HotDogs connection completed successfully\n");
     close_hotdogs_connection(key);
     return HOTDOGS_DONE;
 }
 
 static unsigned hotdogs_error_handler(struct selector_key *key) {
-    printf("HotDogs connection ended with error\n");
+    add_failed_connection();
     close_hotdogs_connection(key);
     return HOTDOGS_ERROR;
 }
@@ -476,7 +467,7 @@ static bool prepare_metrics_response(client_hotdogs *client) {
     // Obtener métricas reales del servidor
     uint32_t historic_conn = (uint32_t)get_historic_connections();
     uint32_t current_conn = (uint32_t)get_current_connections();
-    uint32_t fail_conn = 0;  // TODO: implementar contador de fallos
+    uint32_t fail_conn = (uint32_t) get_failed_connections();  
     uint32_t bytes_transf = (uint32_t)get_transfered_bytes();
     
     // Escribir métricas en big-endian (4 bytes cada uno)
@@ -522,29 +513,30 @@ static bool prepare_users_response(client_hotdogs *client) {
     buf[0] = (uint8_t)RETR;
     buf[1] = (uint8_t)LIST_USERS;
     buf[2] = (uint8_t)client->current_response_status;
+
+    uint64_t transfered_bytes = BASE_RESPONSE_LEN;
     
     if (client->current_response_status == SUCCESS_RESPONSE) {
         char users_data[2048];        
         users_data[0] = '\0';
 
-        uint16_t data_len = get_users_separator(users_data, sizeof(users_data), USERS_SEPARATOR, USERS_SEPARATOR_SIZE);
+        uint16_t user_data_len = get_users_separator(users_data, sizeof(users_data), USERS_SEPARATOR, USERS_SEPARATOR_SIZE);
 
-        if (size < BASE_RESPONSE_LEN + DATA_LEN + data_len) {
+        if (size < BASE_RESPONSE_LEN + DATA_LEN + user_data_len) {
             return false;
         }
 
-        buf[3] = (data_len >> 8) & 0xFF;
-        buf[4] = data_len & 0xFF;
+        buf[3] = (user_data_len >> 8) & 0xFF;
+        buf[4] = user_data_len & 0xFF;
         
         // DATA
-        memcpy(&buf[5], users_data, data_len);
-        
-        add_transfered_bytes(BASE_RESPONSE_LEN + DATA_LEN + data_len);
-        buffer_write_adv(&client->write_buffer, BASE_RESPONSE_LEN + DATA_LEN + data_len);
-    } else {
-        add_transfered_bytes(BASE_RESPONSE_LEN);
-        buffer_write_adv(&client->write_buffer, BASE_RESPONSE_LEN);
+        memcpy(&buf[5], users_data, user_data_len);
+
+        transfered_bytes += DATA_LEN + user_data_len;
     }
+    
+    buffer_write_adv(&client->write_buffer, transfered_bytes);
+    add_transfered_bytes(transfered_bytes);
 
     return true;
 }
