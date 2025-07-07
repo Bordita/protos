@@ -69,6 +69,9 @@ static void connection_read(struct selector_key *key) {
     if (state == ERROR || state == DONE || state == BAD_CREDENTIALS) {
         close_connection(client);
     }
+    if(state == ERROR) {
+        add_failed_connection();
+    }
 }
 
 static void connection_write(struct selector_key *key) {
@@ -78,6 +81,9 @@ static void connection_write(struct selector_key *key) {
     if (state == ERROR || state == DONE || state == BAD_CREDENTIALS) {
         close_connection(client);
     }
+    if(state == ERROR) {
+        add_failed_connection();
+    }
 }
 
 static void connection_block(struct selector_key *key) {
@@ -86,6 +92,9 @@ static void connection_block(struct selector_key *key) {
 
     if (state == ERROR || state == DONE || state == BAD_CREDENTIALS) {
         close_connection(client);
+    }
+    if(state == ERROR) {
+        add_failed_connection();
     }
 }
 
