@@ -11,10 +11,23 @@
 #include "../shared/metrics.h"
 #include "greeting.h"
 #include "socks5.h"
+#include "./includes/hotdogs.h"
+
+typedef enum {
+    SOCKET_TYPE_SOCKS5,
+    SOCKET_TYPE_HOTDOGS,
+    SOCKET_TYPE_UNKNOWN
+} socket_type;
 
 static char * error_msg;
 static fd_selector selector;
 
+// Passive sockets file descriptors
+static int fd_socks = -1;
+static int fd_hot_dogs = -1;
+
+
+// Socks5 handlers
 void close_connection(client_socks5 * client) {
     if (client->dont_close)
         return;
@@ -87,60 +100,144 @@ static const fd_handler socks_connection_fd_handler = {
     .handle_close = connection_close
 };
 
+// Hotdogs handlers
+
+static void hotdogs_connection_read(struct selector_key *key) {
+    client_hotdogs * client = (client_hotdogs *)key->data;
+    hotdogs_states state = stm_handler_read(&client->stm, key);
+
+    // if (state == HOTDOGS_ERROR || state == HOTDOGS_DONE) {
+    //     close_hotdogs_connection(key);
+    // }
+}
+
+static void hotdogs_connection_write(struct selector_key *key) {
+    client_hotdogs * client = (client_hotdogs *)key->data;
+    hotdogs_states state = stm_handler_write(&client->stm, key);
+
+    // if (state == HOTDOGS_ERROR || state == HOTDOGS_DONE) {
+    //     close_hotdogs_connection(client);
+    // }
+}
+
+static void hotdogs_connection_close(struct selector_key *key) {
+    client_hotdogs * client = (client_hotdogs *)key->data;
+    close_hotdogs_connection(client);
+}
+
+static const fd_handler hotdogs_connection_fd_handler = {
+    .handle_read = hotdogs_connection_read,
+    .handle_write = hotdogs_connection_write,
+    .handle_block = NULL,
+    .handle_close = hotdogs_connection_close
+};
+
 
 //server
 static void passive_socket_handler(struct selector_key *key) {
     int fd = key->fd;
+    socket_type type = SOCKET_TYPE_UNKNOWN;
+
+    if (fd == fd_socks) {
+        type = SOCKET_TYPE_SOCKS5;
+    } else if (fd == fd_hot_dogs) {
+        type = SOCKET_TYPE_HOTDOGS;
+    }
 
     int fds_in_use = get_socks5_current_connections() * FDS_PER_SOCKS_CONNECTION + get_hdp_current_connections() + SERVER_LISTEN_SOCKET_COUNT;
-    if ((MAX_FDS - fds_in_use) < FDS_PER_SOCKS_CONNECTION) {
-        int new_fd;
-        if ((new_fd = accept(fd, NULL, NULL)) != -1) {
-            close(new_fd);
-        }
-        return;
-    }
     
-    client_socks5 * client = malloc(sizeof(client_socks5));
-    if (client == NULL) {
-        perror("malloc error");
-        return;
-    }
+    switch (type){
+        case SOCKET_TYPE_SOCKS5:
+            if ((MAX_FDS - fds_in_use) < FDS_PER_SOCKS_CONNECTION) {
+                int new_fd;
+                if ((new_fd = accept(fd, NULL, NULL)) != -1) {
+                    close(new_fd);
+                }
+                return;
+            }
+            
+            client_socks5 * client = malloc(sizeof(client_socks5));
+            if (client == NULL) {
+                perror("malloc error");
+                return;
+            }
 
-    uint32_t buffer_size = socks_get_buffer_size();
+            uint32_t buffer_size = socks_get_buffer_size();
 
-    // Inicializo el struct
-    memset(client, 0x00, sizeof(*client));
-    client->raw_buffer_a = malloc(buffer_size);
-    client->raw_buffer_b = malloc(buffer_size);
-    buffer_init(&client->read_buffer, buffer_size, client->raw_buffer_a);
-    buffer_init(&client->write_buffer, buffer_size, client->raw_buffer_b);
+            // Struct initialization
+            memset(client, 0x00, sizeof(*client));
+            client->raw_buffer_a = malloc(buffer_size);
+            client->raw_buffer_b = malloc(buffer_size);
+            buffer_init(&client->read_buffer, buffer_size, client->raw_buffer_a);
+            buffer_init(&client->write_buffer, buffer_size, client->raw_buffer_b);
 
-    // Inicializar campos para conexiones robustas
-    client->connection_attempts = 0;
-    client->resolved_addr = NULL;
-    client->resolved_addr_current = NULL;
+            // Inicializar campos para conexiones robustas
+            client->connection_attempts = 0;
+            client->resolved_addr = NULL;
+            client->resolved_addr_current = NULL;
 
-    client->stm.initial = GREETING_READ;
-    client->stm.max_state = DONE;
-    client->stm.states = get_socks5_states();
+            client->stm.initial = GREETING_READ;
+            client->stm.max_state = DONE;
+            client->stm.states = get_socks5_states();
 
-    stm_init(&client->stm);
+            stm_init(&client->stm);
 
-    client->client_addr_len = sizeof(client->client_addr);
-    client->client_socket = accept(fd, (struct sockaddr *)&client->client_addr,&client->client_addr_len);
+            client->client_addr_len = sizeof(client->client_addr);
+            client->client_socket = accept(fd, (struct sockaddr *)&client->client_addr,&client->client_addr_len);
 
-    if (client->client_socket == -1) {
-        perror("Couldn't connect to client");
-        close_connection(client);
-        return;
-    }
-    selector_fd_set_nio(client->client_socket);
+            if (client->client_socket == -1) {
+                perror("Couldn't connect to client");
+                close_connection(client);
+                return;
+            }
+            selector_fd_set_nio(client->client_socket);
 
-    if (selector_register(selector, client->client_socket, &socks_connection_fd_handler,OP_READ, client)) {
-        perror("selector_register error");
-        close_connection(client);
-        return;
+            if (selector_register(selector, client->client_socket, &socks_connection_fd_handler,OP_READ, client)) {
+                perror("selector_register error");
+                close_connection(client);
+                return;
+            }
+            break;
+        case SOCKET_TYPE_HOTDOGS:
+            if ((MAX_FDS - fds_in_use) < 1) {
+                int new_fd;
+                if ((new_fd = accept(fd, NULL, NULL)) != -1) {
+                    close(new_fd);
+                }
+                return;
+            }
+            
+            client_hotdogs * hotdogs_client = malloc(sizeof(client_hotdogs));
+            if (hotdogs_client == NULL) {
+                perror("malloc error");
+                return;
+            }
+
+            init_hotdogs_client(hotdogs_client, -1);
+
+            // Accept hdp connection
+            hotdogs_client->client_addr_len = sizeof(hotdogs_client->client_addr);
+            hotdogs_client->client_socket = accept(fd, (struct sockaddr *)&hotdogs_client->client_addr, &hotdogs_client->client_addr_len);
+            if (hotdogs_client->client_socket == -1) {
+                perror("Couldn't connect to HotDogs client");
+                close_hotdogs_connection(hotdogs_client);
+                return;
+            }
+            
+            selector_fd_set_nio(hotdogs_client->client_socket);
+
+            if (selector_register(selector, hotdogs_client->client_socket, &hotdogs_connection_fd_handler, OP_READ, hotdogs_client)) {
+                perror("selector_register error");
+                close_hotdogs_connection(hotdogs_client);
+                return;
+            }
+            
+            add_hdp_current_connection();
+            break;
+        case SOCKET_TYPE_UNKNOWN:
+            fprintf(stderr, "Unknown socket type for fd %d\n", fd);
+            close(fd);
+            break;
     }
 }
 
@@ -178,8 +275,7 @@ static int create_socket(char * addr, char * port,const struct fd_handler * sele
         goto finally;
     }
 
-    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuse_addr, sizeof(int)) ==
-        -1) {
+    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuse_addr, sizeof(int)) == -1) {
         error_msg = "unable to set socket to reuse address";
         error = true;
         goto finally;
@@ -227,7 +323,6 @@ finally:
 int server_handler(char * socks_addr, char * socks_port, char * hot_dogs_addr,char * hot_dogs_port){
 
     error_msg = NULL;
-    int fd_socks = -1, fd_hot_dogs = -1;
     int ret_code = 0;
     int selector_init_ret;
 

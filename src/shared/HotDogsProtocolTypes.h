@@ -13,6 +13,9 @@
 #define AUTH_RESPONSE_LEN 2
 #define VERSION 1
 
+#define MAX_RETR_OPTION 2
+#define MAX_MOD_OPTION 3    
+
 typedef enum AuthenticationStatus{
     AUTH_SUCCESS = 0,
     UNDERCOOKED,
@@ -25,6 +28,8 @@ typedef enum ReqMethod{
     MOD
 } ReqMethod;
 
+
+
 typedef enum retr_option{
     METRICS = 0,
     LIST_USERS,
@@ -33,7 +38,7 @@ typedef enum retr_option{
 
 typedef enum mod_option{
     BUF_SIZE,
-    TIMEOUT,
+    TIMEOUT,        // TODO: checkear si cambiamos el timeout
     ADD_USER,
     REMOVE_USER
 } mod_option;
