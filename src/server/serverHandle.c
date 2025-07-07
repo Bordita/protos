@@ -46,6 +46,7 @@ void close_connection(client_socks5 * client) {
     free(client->raw_buffer_a);
     free(client->raw_buffer_b);
     free(client);
+    remove_socks5_current_connection();
 }
 
 static void connection_read(struct selector_key *key) {
@@ -129,6 +130,7 @@ static void passive_socket_handler(struct selector_key *key) {
 
     client->client_addr_len = sizeof(client->client_addr);
     client->client_socket = accept(fd, (struct sockaddr *)&client->client_addr,&client->client_addr_len);
+    add_socks5_current_connection();
 
     if (client->client_socket == -1) {
         perror("Couldn't connect to client");
