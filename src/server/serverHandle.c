@@ -114,25 +114,19 @@ static const fd_handler socks_connection_fd_handler = {
 
 static void hotdogs_connection_read(struct selector_key *key) {
     client_hotdogs * client = (client_hotdogs *)key->data;
-    hotdogs_states state = stm_handler_read(&client->stm, key);
-
-    // if (state == HOTDOGS_ERROR || state == HOTDOGS_DONE) {
-    //     close_hotdogs_connection(key);
-    // }
+    stm_handler_read(&client->stm, key);
 }
 
 static void hotdogs_connection_write(struct selector_key *key) {
     client_hotdogs * client = (client_hotdogs *)key->data;
-    hotdogs_states state = stm_handler_write(&client->stm, key);
-
-    // if (state == HOTDOGS_ERROR || state == HOTDOGS_DONE) {
-    //     close_hotdogs_connection(client);
-    // }
+    stm_handler_write(&client->stm, key);
 }
 
 static void hotdogs_connection_close(struct selector_key *key) {
     client_hotdogs * client = (client_hotdogs *)key->data;
+
     close_hotdogs_connection(client);
+    remove_hdp_current_connection();
 }
 
 static const fd_handler hotdogs_connection_fd_handler = {

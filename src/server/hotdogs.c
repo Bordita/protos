@@ -30,6 +30,7 @@ static bool parse_request_plen(client_hotdogs *client, uint8_t c);
 static bool parse_request_password(client_hotdogs *client, uint8_t c);
 
 // Prepare responses
+static void prepare_request_header(client_hotdogs *client, uint8_t* buffer);
 static bool prepare_request_response(client_hotdogs *client);
 static bool prepare_retr_response(client_hotdogs *client);
 static bool prepare_metrics_response(client_hotdogs *client);
@@ -38,10 +39,6 @@ static bool prepare_logs_response(client_hotdogs *client);
 static bool prepare_mod_response(client_hotdogs *client);
 
 static void execute_mod_actions(client_hotdogs *client);
-
-
-// Prepare the response for the request
-static bool prepare_request_response(client_hotdogs *client);
 
 // States definition
 static const struct state_definition hotdogs_state_definitions[] = {
@@ -383,8 +380,6 @@ void close_hotdogs_connection(struct selector_key *key) {
     key->data = NULL;
 
     free(client);
-    
-    remove_hdp_current_connection();
 }
 
 void init_hotdogs_client(client_hotdogs *client, int client_socket) {
@@ -418,7 +413,18 @@ void init_hotdogs_client(client_hotdogs *client, int client_socket) {
 
 
 
-// Prepare responses
+// Prepare request responses
+static void prepare_request_header(client_hotdogs *client, uint8_t* buffer){
+    if (client == NULL || buffer == NULL) {
+        return; // Invalid parameters
+    }
+
+    // Respuesta MOD: [METHOD][OPTION][STATUS]
+    buffer[0] = (uint8_t)client->current_method;
+    buffer[1] = (uint8_t)client->current_option;
+    buffer[2] = (uint8_t)client->current_response_status;
+}
+
 static bool prepare_request_response(client_hotdogs *client) {
     // Reset write buffer
     buffer_reset(&client->write_buffer);
@@ -456,9 +462,7 @@ static bool prepare_metrics_response(client_hotdogs *client) {
     }
     
     // Header (3 bytes)
-    buf[0] = (uint8_t)RETR;                    // METHOD = 0
-    buf[1] = (uint8_t)METRICS;                 // OPTION = 0  
-    buf[2] = (uint8_t)SUCCESS_RESPONSE;        // STATUS = 0
+    prepare_request_header(client, buf);
     
     // Obtener métricas reales del servidor
     uint32_t historic_conn = (uint32_t)get_historic_connections();
@@ -506,9 +510,7 @@ static bool prepare_users_response(client_hotdogs *client) {
     }
     
     // Header (3 bytes)
-    buf[0] = (uint8_t)RETR;
-    buf[1] = (uint8_t)LIST_USERS;
-    buf[2] = (uint8_t)client->current_response_status;
+    prepare_request_header(client, buf);
 
     uint64_t transfered_bytes = BASE_RESPONSE_LEN;
     
@@ -532,7 +534,6 @@ static bool prepare_users_response(client_hotdogs *client) {
     }
     
     buffer_write_adv(&client->write_buffer, transfered_bytes);
-    add_transfered_bytes(transfered_bytes);
 
     return true;
 }
@@ -547,9 +548,7 @@ static bool prepare_logs_response(client_hotdogs *client) {
     }
     //todo: implement
     // Header (3 bytes)
-    buf[0] = (uint8_t)RETR;
-    buf[1] = (uint8_t)LIST_LOGS;
-    buf[2] = (uint8_t)SUCCESS_RESPONSE;
+    prepare_request_header(client, buf);
     
     // Preparar datos de logs (formato simple)
     char logs_data[] = "2024-01-01 10:00:00 - User connected\r2024-01-01 10:01:00 - User disconnected\r";
@@ -584,11 +583,8 @@ static bool prepare_mod_response(client_hotdogs *client) {
     execute_mod_actions(client);
 
     // Respuesta MOD: [METHOD][OPTION][STATUS]
-    buf[0] = (uint8_t)MOD;
-    buf[1] = (uint8_t)client->current_option;
-    buf[2] = (uint8_t)SUCCESS_RESPONSE;
+    prepare_request_header(client, buf);
     
-    add_transfered_bytes(BASE_RESPONSE_LEN);
     buffer_write_adv(&client->write_buffer, BASE_RESPONSE_LEN);
     
     printf("Prepared MOD response: Option=%d\n", client->current_option);
