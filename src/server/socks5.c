@@ -3,6 +3,7 @@
 #include "../shared/parser.h"
 #include "../shared/stm.h"
 #include "../shared/selector.h"
+#include "../shared/metrics.h"
 #include "greeting.h"
 #include "authentication.h"
 #include "request.h"
@@ -19,6 +20,30 @@ static void* request_resolv_thread(void * arg);
 static socks5_states try_next_address(struct selector_key * key);
 
 uint32_t buffer_size = MAX_SOCKS5_BUFFER_SIZE; 
+
+socks5_reply errno_to_socks5_reply(int err) {
+    switch (err) {
+        case ECONNREFUSED:
+            return REP_CONNECTION_REFUSED;
+        case ETIMEDOUT:
+            return REP_HOST_UNREACHABLE;
+        case ENETUNREACH:
+            return REP_NETWORK_UNREACHABLE;
+        case EHOSTUNREACH:
+        case EADDRNOTAVAIL:
+            return REP_HOST_UNREACHABLE;
+        case EACCES:
+            return REP_CONNECTION_NOT_ALLOWED;
+        case EAFNOSUPPORT:
+        case EINVAL:
+            return REP_ADDRESS_TYPE_NOT_SUPPORTED;
+        case ENOTSOCK:
+            return REP_GENERAL_FAILURE;
+        default:
+            return REP_GENERAL_FAILURE;
+    }
+}
+
 
 static inline void clear_parsing_state(client_socks5 *client) {
     parser_destroy(client->parser);
@@ -449,16 +474,19 @@ static socks5_states relay_data_read(struct selector_key * key) {
     uint8_t * write_ptr;
     int fd;
     buffer * target_buffer;
+    bool log_transferred_bytes = false;
 
     // Determinar de dónde viene el evento
     if (key->fd == client->client_socket) {
         // Leer del cliente y guardar en el buffer hacia el destino
         fd = client->client_socket;
         target_buffer = &client->client_to_dest_buffer;
+        log_transferred_bytes = false;
     } else if (key->fd == client->destination_socket) {
         // Leer del destino y guardar en el buffer hacia el cliente
         fd = client->destination_socket;
         target_buffer = &client->dest_to_client_buffer;
+        log_transferred_bytes = true;
     } else {
         fprintf(stderr, "relay_data_read: fd desconocido (%d)\n", key->fd);
         return ERROR;
@@ -471,6 +499,9 @@ static socks5_states relay_data_read(struct selector_key * key) {
     n = recv(fd, write_ptr, space, MSG_NOSIGNAL);    
     if (n > 0) {
         buffer_write_adv(target_buffer, n);
+        if (log_transferred_bytes) {
+            add_transfered_bytes(n);
+        }
         // Habilitar escritura en el otro socket
         int other_fd = (fd == client->client_socket) ? client->destination_socket : client->client_socket;
         if (selector_set_interest(key->s, other_fd, OP_WRITE) != SELECTOR_SUCCESS) {
@@ -505,16 +536,19 @@ static socks5_states relay_data_write(struct selector_key * key) {
     uint8_t * read_ptr;
     int fd;
     buffer * source_buffer;
+    bool log_transferred_bytes = false;
 
     // Determinar a dónde va el evento
     if (key->fd == client->destination_socket) {
         // Escribir al destino desde el buffer
         fd = client->destination_socket;
         source_buffer = &client->client_to_dest_buffer;
+        log_transferred_bytes = true;
     } else if (key->fd == client->client_socket) {
         // Escribir al cliente desde el buffer
         fd = client->client_socket;
         source_buffer = &client->dest_to_client_buffer;
+        log_transferred_bytes = false;
     } else {
         fprintf(stderr, "relay_data_write: fd desconocido (%d)\n", key->fd);
         return ERROR;
@@ -525,6 +559,9 @@ static socks5_states relay_data_write(struct selector_key * key) {
         n = send(fd, read_ptr, count, MSG_NOSIGNAL);
         if (n > 0) {
             buffer_read_adv(source_buffer, n);
+            if (log_transferred_bytes) {
+                add_transfered_bytes(n);
+            }
         } else if (n == 0) {
             // EOF, el otro extremo cerró la conexión
             fprintf(stderr, "relay_data_write: send devolvió 0 (EOF) en fd %d\n", fd);
@@ -580,7 +617,7 @@ static socks5_states try_next_address(struct selector_key * key) {
     }
 
     // If we reach here, it means all addresses have been tried and failed and errno was set by the last connect attempt.
-    if (generate_request_response(&client->write_buffer, errno, ATYP_IPV4, "0.0.0.0", 0) == -1) {
+    if (generate_request_response(&client->write_buffer, errno_to_socks5_reply(errno), ATYP_IPV4, "0.0.0.0", 0) == -1) {
         return ERROR;
     }
     
