@@ -2,9 +2,9 @@
 #define __request_socks_h
 
 #include <stdint.h>
-#include "../shared/parser.h"
-#include "../shared/buffer.h"
-#include "../shared/selector.h"
+#include "../shared/includes/parser.h"
+#include "../shared/includes/buffer.h"
+#include "../shared/includes/selector.h"
 #include "socks5.h"
 
 

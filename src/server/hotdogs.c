@@ -1,9 +1,9 @@
 #include "./includes/hotdogs.h"
 
-#include "../shared/metrics.h"
-#include "../shared/auth.h"
+#include "../shared/includes/metrics.h"
+#include "../shared/includes/auth.h"
 #include "../shared/includes/logger.h"
-#include "../shared/parser.h"
+#include "../shared/includes/parser.h"
 #include "./socks5.h"
 
 #include <stdlib.h>

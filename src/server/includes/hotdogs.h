@@ -13,10 +13,10 @@
 #include <netdb.h>
 #include <stdint.h>
 #include <sys/socket.h>
-#include "../../shared/buffer.h"
-#include "../../shared/stm.h"
-#include "../../shared/selector.h"
-#include "../../shared/HotDogsProtocolTypes.h"
+#include "../../shared/includes/buffer.h"
+#include "../../shared/includes/stm.h"
+#include "../../shared/includes/selector.h"
+#include "../../shared/includes/HotDogsProtocolTypes.h"
 
 
 typedef enum {

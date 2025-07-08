@@ -15,7 +15,7 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <signal.h>
-#include "selector.h"
+#include "./includes/selector.h"
 
 #define N(x) (sizeof(x)/sizeof((x)[0]))
 

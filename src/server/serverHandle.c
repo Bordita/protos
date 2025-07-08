@@ -3,12 +3,12 @@
 #include <stdio.h>
 #include <string.h>   
 #include <signal.h>  
-#include "../shared/stm.h"
-#include "../shared/buffer.h"
-#include "../shared/parser.h"
-#include "../shared/selector.h"
+#include "../shared/includes/stm.h"
+#include "../shared/includes/buffer.h"
+#include "../shared/includes/parser.h"
+#include "../shared/includes/selector.h"
 #include "serverHandle.h"
-#include "../shared/metrics.h"
+#include "../shared/includes/metrics.h"
 #include "greeting.h"
 #include "socks5.h"
 #include "./includes/hotdogs.h"

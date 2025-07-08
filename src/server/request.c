@@ -1,9 +1,9 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include "request.h"
-#include "../shared/parser.h"
-#include "../shared/selector.h"
-#include "../shared/buffer.h"
+#include "../shared/includes/parser.h"
+#include "../shared/includes/selector.h"
+#include "../shared/includes/buffer.h"
 #include "socks5.h"
 
 

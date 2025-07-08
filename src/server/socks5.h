@@ -4,10 +4,10 @@
 #include <netdb.h>
 #include <stdint.h>
 #include <sys/socket.h>
-#include "../shared/buffer.h"
-#include "../shared/parser.h"
-#include "../shared/stm.h"
-#include "../shared/selector.h"
+#include "../shared/includes/buffer.h"
+#include "../shared/includes/parser.h"
+#include "../shared/includes/stm.h"
+#include "../shared/includes/selector.h"
 #include <stdbool.h>
 #define MAX_SOCKS5_BUFFER_SIZE 1024
 

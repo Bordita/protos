@@ -4,7 +4,7 @@
 #include <string.h>    /* memset */
 #include <errno.h>
 #include <getopt.h>
-#include "../shared/auth.h"
+#include "../shared/includes/auth.h"
 #include "args.h"
 
 static char*

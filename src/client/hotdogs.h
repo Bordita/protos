@@ -1,7 +1,7 @@
 #ifndef __hotdogs_h_
 #define __hotdogs_h_
 
-#include "../shared/HotDogsProtocolTypes.h"
+#include "../shared/includes/HotDogsProtocolTypes.h"
 
 #define SUCCESS_CONNECTING 0
 #define UNSUCCESSFUL_CONNECTION 1

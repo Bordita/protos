@@ -1,11 +1,11 @@
 
 #include <string.h>
 #include "greeting.h"
-#include "../shared/parser.h"
-#include "../shared/selector.h"
-#include "../shared/buffer.h"
+#include "../shared/includes/parser.h"
+#include "../shared/includes/selector.h"
+#include "../shared/includes/buffer.h"
 #include "socks5.h"
-#include "../shared/auth.h"
+#include "../shared/includes/auth.h"
 // Actions for the greeting parser 
 static void act_version(struct parser_event *ret, const uint8_t c) {
     ret->type = GREETING_EVENT_VERSION_OK;
