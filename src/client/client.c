@@ -32,9 +32,27 @@ void add_action(Action action) {
     actions[actions_count++] = action;
 }
 
+void print_help() {
+    printf("\nHotDogs Protocol Client Usage:\n");
+    printf("  -u user:pass         Authenticates with username and password (required)\n");
+    printf("  -ip <address>        Provides server IP address (default: 127.0.0.1)\n");
+    printf("  -port <port>         Provides server port (default: 42069)\n");
+    printf("  -m                   Gets server metrics\n");
+    printf("  -lu                  Lists users\n");
+    printf("  -ll                  Lists logs\n");
+    printf("  -b <size>            Sets buffer size\n");
+    printf("  -add user:pass       Adds user (Maximum of 10 users)\n");
+    printf("  -rm user             Removes user with username 'user'\n");
+    printf("  -h                   Show this help message and terminates the connection.\n");
+    printf("\n");
+}
+
 void _parse_args(int argc, char **argv) {
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-u") == 0 && i + 1 < argc) {
+        if (strcmp(argv[i], "-h") == 0) {
+            print_help();
+            exit(0);
+        } else if (strcmp(argv[i], "-u") == 0 && i + 1 < argc) {
             char *token = strtok(argv[++i], ":");
             if (token) {
                 username = strdup(token);
@@ -103,18 +121,20 @@ void _parse_args(int argc, char **argv) {
             free_ip = 1;
         } else if (strcmp(argv[i], "-port") == 0 && i + 1 < argc) {
             port_number = atoi(argv[++i]);
+        } else {
+            fprintf(stderr, "Unrecognized argument %s. Use -h for help.\n", argv[i]);
+            exit(ERROR_VALUE);
         }
     }
 
     if (!username || !password) {
-        fprintf(stderr, "[Error] Credentials not provided (-u user:pass)\n");
+        fprintf(stderr, "[Error] Credentials not provided (-u user:pass). Use -h for help.\n");
         exit(1);
     }
 }
 
 void freeActions(Action * actions){
     for(int i=0; i < actions_count; i++){
-        printf("Action %d of type %d\n", i, actions[i].type);
         if(actions[i].type == ACTION_ADD_USER){
             free(actions[i].data.add_user.user);
             free(actions[i].data.add_user.pass);
