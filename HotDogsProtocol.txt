@@ -186,8 +186,7 @@ Note:
     +--------+----------+-------------+-----------+--------------+
 
     Where DLEN describes the length of the DATA field, which contains all the usernames.
-    The DATA field contains each of the usernames null terminated, each separated 
-    by a '\r' character.
+    The DATA field contains each of the usernames, each separated by a '\r' character.
 
     See example in Section 5.1.
 
