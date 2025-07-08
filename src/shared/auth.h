@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdint.h>
 
 int add_user(const char *username, const char *password);
 void remove_user(const char *username);
