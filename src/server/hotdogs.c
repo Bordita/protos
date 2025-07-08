@@ -37,7 +37,7 @@ static bool parse_auth_password(client_hotdogs *client, uint8_t c);
 
 // Prepare responses
 static void prepare_request_header(client_hotdogs *client, uint8_t* buffer);
-static void prepare_auth_response(client_hotdogs *client);
+static bool prepare_auth_response(client_hotdogs *client);
 static bool prepare_request_response(client_hotdogs *client);
 static bool prepare_retr_response(client_hotdogs *client);
 static bool prepare_metrics_response(client_hotdogs *client);
@@ -654,7 +654,7 @@ static bool parse_auth_password(client_hotdogs *client, uint8_t c) {
         if (client->auth_parser.password_remaining == 0) {
             client->auth_parser.password[client->auth_parser.password_len] = '\0'; // Null-terminate the password
             client->auth_parser.current_parse_state = HOTDOGS_PARSE_DONE; // Next state
-            auth_read_complete = true; // Authentication data read complete
+           return true; // Authentication data read complete
         }
     }
     return false;

@@ -66,14 +66,14 @@ char * get_logs(void){
 
 int get_logs_separator(char *buffer, size_t buffer_size, const char *separator, size_t size_separator){
     if (buffer == NULL || separator == NULL || buffer_size == 0) {
-        return;
+        return 0; 
     }
     
     buffer[0] = '\0';
     
     FILE *file = fopen(log_file, "r");
     if (!file) {
-        return;
+        return 0;  
     }
 
     char read_buffer[1024];
@@ -86,7 +86,7 @@ int get_logs_separator(char *buffer, size_t buffer_size, const char *separator, 
                 if (output_pos + size_separator >= buffer_size) {
                     fclose(file);
                     buffer[output_pos] = '\0';
-                    return;
+                    return (int)output_pos;  
                 }
                 memcpy(&buffer[output_pos], separator, size_separator);
                 output_pos += size_separator;
@@ -94,7 +94,7 @@ int get_logs_separator(char *buffer, size_t buffer_size, const char *separator, 
                 if (output_pos >= buffer_size - 1) {
                     fclose(file);
                     buffer[output_pos] = '\0';
-                    return;
+                    return (int)output_pos;  
                 }
                 buffer[output_pos] = read_buffer[i];
                 output_pos++;
@@ -105,5 +105,5 @@ int get_logs_separator(char *buffer, size_t buffer_size, const char *separator, 
     fclose(file);
     buffer[output_pos] = '\0';
 
-    return output_pos; 
+    return (int)output_pos;
 }
