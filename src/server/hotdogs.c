@@ -546,13 +546,14 @@ static bool prepare_logs_response(client_hotdogs *client) {
     if (size < BASE_RESPONSE_LEN + DATA_LEN) {
         return false;
     }
-    //todo: implement
+
     // Header (3 bytes)
     prepare_request_header(client, buf);
     
     // Preparar datos de logs (formato simple)
-    char logs_data[] = "2024-01-01 10:00:00 - User connected\r2024-01-01 10:01:00 - User disconnected\r";
-    uint16_t data_len = strlen(logs_data);
+    char log_data[MAX_DATA_SIZE];
+    uint16_t data_len =  get_logs_separator(log_data, MAX_DATA_SIZE, SEPARATOR, SEPARATOR_SIZE);
+
     
     // Verificar espacio total
     if (size < BASE_RESPONSE_LEN + DATA_LEN + data_len) {
@@ -564,7 +565,7 @@ static bool prepare_logs_response(client_hotdogs *client) {
     buf[4] = data_len & 0xFF;
     
     // DATA
-    memcpy(&buf[5], logs_data, data_len);
+    memcpy(&buf[5], log_data, data_len);
     
     buffer_write_adv(&client->write_buffer, BASE_RESPONSE_LEN + DATA_LEN + data_len);
     

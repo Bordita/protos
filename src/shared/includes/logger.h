@@ -14,6 +14,7 @@ void clean_logs(void);
 
 void set_log_file(const char *filename);
 
-char * get_logs(void); 
+char * get_logs(void);
+int get_logs_separator(char *buffer, size_t buffer_size, const char *separator, size_t size_separator);
 
 #endif
