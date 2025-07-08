@@ -584,7 +584,6 @@ static bool prepare_logs_response(client_hotdogs *client) {
     
     buffer_write_adv(&client->write_buffer, BASE_RESPONSE_LEN + DATA_LEN + data_len);
     
-    printf("Prepared LOGS response: %d bytes of data\n", data_len);
     return true;
 }
 
@@ -603,7 +602,6 @@ static bool prepare_mod_response(client_hotdogs *client) {
     
     buffer_write_adv(&client->write_buffer, BASE_RESPONSE_LEN);
     
-    printf("Prepared MOD response: Option=%d\n", client->current_option);
     return true;
 }
 

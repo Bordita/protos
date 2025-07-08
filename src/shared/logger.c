@@ -1,6 +1,6 @@
 #include "includes/logger.h"
 
-#define LOG_FILE "../access.log"
+#define LOG_FILE "./access.log"
 
 #define TIMESTAMP_FORMAT "%Y-%m-%d %H:%M:%S"
 #define TIMESTAMP_SIZE 20

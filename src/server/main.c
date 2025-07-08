@@ -5,6 +5,7 @@
 #include "../shared/includes/selector.h"
 #include "serverHandle.h"
 #include "../args/args.h"
+#include "../shared/includes/logger.h"
 #include <unistd.h>
 
 static void sigterm_handler(const int signal) {
@@ -35,6 +36,8 @@ int main(int argc, char *argv[]){
 
     struct socks5args args;
     parse_args(argc, argv, &args);
+
+    log_init();         // Initialize the logger
 
     int retcode = server_handler(args.socks_addr, args.socks_port,
                                 args.mng_addr, args.mng_port);
