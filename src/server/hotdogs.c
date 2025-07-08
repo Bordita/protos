@@ -612,7 +612,6 @@ static void execute_mod_actions(client_hotdogs *client) {
             break;
         case ADD_USER:
             add_user(client->request_parser.username, client->request_parser.password); 
-            print_user_list();
             break;
         case REMOVE_USER:
             remove_user(client->request_parser.username);
