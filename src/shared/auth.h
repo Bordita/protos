@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 int add_user(const char *username, const char *password);
 void remove_user(const char *username);
@@ -14,5 +15,7 @@ void destroy_user_list(void);
 uint16_t get_users_separator(char *buffer, size_t buffer_size, const char *separator, size_t separator_size);
 
 bool authentication_enabled(void);
+
+void print_user_list(void);
 
 #endif

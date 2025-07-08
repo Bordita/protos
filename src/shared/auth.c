@@ -55,6 +55,8 @@ void remove_user(const char *username) {
                 // Removing a user from the middle or end of the list
                 previous->next = current->next;
             }
+            free((void *) current->username); // Free the username string
+            free((void *) current->password); // Free the password string
             free(current);
             return; // User removed successfully
         }
@@ -103,14 +105,16 @@ uint16_t get_users_separator(char *buffer, size_t buffer_size, const char *separ
     while (current != NULL) {
         size_t len = strlen(current->username);
         
-        if (current_len + len + separator_size + 1 > buffer_size) {
+        if (current_len + len + separator_size > buffer_size) {
             break; // No hay más espacio
         }
         
-        strncat(buffer, current->username, len);
-        strncat(buffer, separator, separator_size);
+        memcpy(&buffer[current_len], current->username, len);
+        current_len += len;
         
-        current_len += len + separator_size;
+        memcpy(&buffer[current_len], separator, separator_size);
+        current_len += separator_size;
+        
         current = current->next;
     }
     return current_len;
@@ -122,12 +126,28 @@ UserList * create_user(const char *username, const char *password) {
         return NULL; // Memory allocation failed
     }
 
-    new_user->username = username;
-    new_user->password = password;
+    new_user->username = strdup(username);
+    new_user->password = strdup(password);
+
+    if (new_user->username == NULL || new_user->password == NULL) {
+        free(new_user->username);
+        free(new_user->password);
+        free(new_user);
+        return NULL; // Memory allocation failed
+    }
+
     new_user->next = NULL;
     return new_user;
 }
 
 bool authentication_enabled(void) {
     return auth_enabled;
+}
+
+void print_user_list(void) {
+    UserList * current = users_list;
+    while (current != NULL) {
+        printf("User: %s, Password: %s\n", current->username, current->password);
+        current = current->next;
+    }
 }

@@ -201,7 +201,7 @@ Note:
     |    1   |    1     |      1      |     2     |   Variable   |
     +--------+----------+-------------+-----------+--------------+
 
-    Where DLEN describes the length of the DATA field, which contains all the logs null terminated.
+    Where DLEN describes the length of the DATA field, which contains all the logs.
     As in usernames, each of the logs are separated by a '\r'.
 
 4.2. MOD Responses
@@ -230,10 +230,10 @@ Note:
         +--------+----------+-------------+-----------+--------------------+
         | METHOD | OPTIONS  | COOK_STATUS | DATA_LEN  |        DATA        |
         +--------+----------+-------------+-----------+--------------------+
-        | 0x00   |  0x01    |   0x00      |  0x000C   | "alice\0\rbob\0\r" |
+        | 0x00   |  0x01    |   0x00      |  0x000C   | "alice\rbob\r" |
         +--------+----------+-------------+-----------+--------------------+
 
-    This response lists two users: "alice" and "bob", each null-terminated and separated by '\r'.
+    This response lists two users: "alice" and "bob", each separated by '\r'.
 
 5.2. Modify Buffer
 

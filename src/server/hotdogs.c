@@ -100,7 +100,11 @@ static unsigned hotdogs_auth_read(struct selector_key *key) {
     uint8_t *bufptr = buffer_write_ptr(&client->read_buffer, &count);
     ssize_t len = recv(client->client_socket, bufptr, count, MSG_NOSIGNAL);
     
-    if (len <= 0) {
+    if (len == 0) {
+        return HOTDOGS_DONE;
+    }
+
+    if (len < 0) {
         return HOTDOGS_ERROR;
     }
     
@@ -108,24 +112,23 @@ static unsigned hotdogs_auth_read(struct selector_key *key) {
     
     // Proccess the read buffer with the parser
     bool auth_read_complete = false;
-    bool should_respond_on_error = false;
     while (buffer_can_read(&client->read_buffer) && !auth_read_complete) {
         uint8_t c = buffer_read(&client->read_buffer);
         switch (client->auth_parser.current_parse_state) {
             case HOTDOGS_PARSE_VERSION:
-                should_respond_on_error = parse_auth_version(client, c);
+                auth_read_complete = parse_auth_version(client, c);
                 break;
             case HOTDOGS_PARSE_ULEN:
-                should_respond_on_error = parse_auth_ulen(client, c);
+                auth_read_complete = parse_auth_ulen(client, c);
                 break;
             case HOTDOGS_PARSE_USERNAME:
-                should_respond_on_error = parse_auth_username(client, c);
+                auth_read_complete = parse_auth_username(client, c);
                 break;
             case HOTDOGS_PARSE_PLEN:
-                should_respond_on_error = parse_auth_plen(client, c);
+                auth_read_complete = parse_auth_plen(client, c);
                 break;
             case HOTDOGS_PARSE_PASSWORD:
-                should_respond_on_error = parse_auth_password(client, c);
+                auth_read_complete = parse_auth_password(client, c);
                 break;
             case HOTDOGS_PARSE_DONE:
                 // If we reach this state, it means we have read all the authentication data
@@ -134,29 +137,17 @@ static unsigned hotdogs_auth_read(struct selector_key *key) {
         }
     }
 
-    if (should_respond_on_error) {
-        if (prepare_auth_response(client) == false) {
-            return HOTDOGS_ERROR;
-        }
-        if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
-            return HOTDOGS_ERROR;
-        }
-        return HOTDOGS_AUTH_RESPONSE;
-    }
-
-    // Cannot parse properly
     if (auth_read_complete) {
-        if (authenticate_user(client->auth_parser.username, client->auth_parser.password) != 0) {
-            memset(client->username, 0, sizeof(client->username));
-            memset(client->auth_parser.username, 0, sizeof(client->auth_parser.username));
-            memset(client->auth_parser.password, 0, sizeof(client->auth_parser.password));
-            client->authenticated = UNDERCOOKED; // Invalid credentials
-        } else {
-            memset(client->auth_parser.username, 0, sizeof(client->auth_parser.username));
-            memset(client->auth_parser.password, 0, sizeof(client->auth_parser.password));
-
-            client->authenticated = AUTH_SUCCESS; // Authentication successful
+        if (client->auth_parser.current_parse_state == HOTDOGS_PARSE_DONE) {
+            if (authenticate_user(client->auth_parser.username, client->auth_parser.password) != 0) {
+                memset(client->username, 0, sizeof(client->username));
+                client->authenticated = UNDERCOOKED; // Invalid credentials
+            } else {
+                client->authenticated = AUTH_SUCCESS; // Authentication successful
+            }
         }
+
+        memset(&client->auth_parser, 0, sizeof(client->auth_parser));
 
         if (prepare_auth_response(client) == false) {
             return HOTDOGS_ERROR;
@@ -421,13 +412,27 @@ static bool prepare_request_response(client_hotdogs *client) {
     // Reset write buffer
     buffer_reset(&client->write_buffer);
     
-    if (client->current_method == RETR) {
-        return prepare_retr_response(client);
-    } else if (client->current_method == MOD) {
-        return prepare_mod_response(client);
+    if (client->current_response_status == SUCCESS_RESPONSE){
+        if (client->current_method == RETR) {
+            return prepare_retr_response(client);
+        } else if (client->current_method == MOD) {
+            return prepare_mod_response(client);
+        }
+        return false;
+    }
+
+    // For other status, we just prepare a simple error response
+    size_t size;
+    uint8_t *buf = buffer_write_ptr(&client->write_buffer, &size);
+
+    if (size < BASE_RESPONSE_LEN) {
+        return false; // Not enough space in the buffer
     }
     
-    return false;
+    // Header (3 bytes)
+    prepare_request_header(client, buf);
+    
+    return true;
 }
 
 static bool prepare_retr_response(client_hotdogs *client) {
@@ -510,7 +515,7 @@ static bool prepare_users_response(client_hotdogs *client) {
         char users_data[MAX_DATA_SIZE];        
         users_data[0] = '\0';
 
-        uint16_t user_data_len = get_users_separator(users_data, sizeof(users_data), SEPARATOR, SEPARATOR_SIZE);
+        uint16_t user_data_len = get_users_separator(users_data, MAX_DATA_SIZE, SEPARATOR, SEPARATOR_SIZE);
 
         if (size < BASE_RESPONSE_LEN + DATA_LEN + user_data_len) {
             return false;
@@ -526,7 +531,6 @@ static bool prepare_users_response(client_hotdogs *client) {
     }
     
     buffer_write_adv(&client->write_buffer, transfered_bytes);
-
     return true;
 }
 
@@ -591,6 +595,7 @@ static void execute_mod_actions(client_hotdogs *client) {
             break;
         case ADD_USER:
             add_user(client->request_parser.username, client->request_parser.password); 
+            print_user_list();
             break;
         case REMOVE_USER:
             remove_user(client->request_parser.username);
@@ -611,6 +616,7 @@ static bool parse_auth_version(client_hotdogs *client, uint8_t c) {
 
 static bool parse_auth_ulen(client_hotdogs *client, uint8_t c) {
     if (c < 1 || c > MAX_UNAME_LEN) {
+        client->auth_parser.current_parse_state = HOTDOGS_PARSE_ERROR; // Invalid username length
         client->authenticated = WHO_LET_BRO_COOK; // Invalid password length
         return true;
     }
@@ -630,12 +636,17 @@ static bool parse_auth_username(client_hotdogs *client, uint8_t c) {
             client->auth_parser.username[client->auth_parser.username_len] = '\0'; // Null-terminate the username
             client->auth_parser.current_parse_state = HOTDOGS_PARSE_PLEN; // Next state   
         } 
+    } else {
+        client->auth_parser.current_parse_state = HOTDOGS_PARSE_ERROR; // Invalid username length
+        client->authenticated = WHO_LET_BRO_COOK; // Invalid password length
+        return true; // Error
     }
     return false;
 }
 
 static bool parse_auth_plen(client_hotdogs *client, uint8_t c) {
     if (c < 1 || c > MAX_PASS_LEN) {
+        client->auth_parser.current_parse_state = HOTDOGS_PARSE_ERROR; // Invalid password length
         client->authenticated = WHO_LET_BRO_COOK; // Invalid password length
         return true;
     }
@@ -654,8 +665,12 @@ static bool parse_auth_password(client_hotdogs *client, uint8_t c) {
         if (client->auth_parser.password_remaining == 0) {
             client->auth_parser.password[client->auth_parser.password_len] = '\0'; // Null-terminate the password
             client->auth_parser.current_parse_state = HOTDOGS_PARSE_DONE; // Next state
-           return true; // Authentication data read complete
+            return true;
         }
+    } else {
+        client->auth_parser.current_parse_state = HOTDOGS_PARSE_ERROR; // Invalid password length
+        client->authenticated = WHO_LET_BRO_COOK; // Invalid password length
+        return true; // Error
     }
     return false;
 }
