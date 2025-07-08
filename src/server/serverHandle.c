@@ -123,9 +123,7 @@ static void hotdogs_connection_write(struct selector_key *key) {
 }
 
 static void hotdogs_connection_close(struct selector_key *key) {
-    client_hotdogs * client = (client_hotdogs *)key->data;
-
-    close_hotdogs_connection(client);
+    close_hotdogs_connection(key);
     remove_hdp_current_connection();
 }
 
@@ -225,7 +223,7 @@ static void passive_socket_handler(struct selector_key *key) {
             hotdogs_client->client_socket = accept(fd, (struct sockaddr *)&hotdogs_client->client_addr, &hotdogs_client->client_addr_len);
             if (hotdogs_client->client_socket == -1) {
                 perror("Couldn't connect to HotDogs client");
-                close_hotdogs_connection(hotdogs_client);
+                clear_hotdogs_client(hotdogs_client);
                 return;
             }
             
@@ -233,7 +231,8 @@ static void passive_socket_handler(struct selector_key *key) {
 
             if (selector_register(selector, hotdogs_client->client_socket, &hotdogs_connection_fd_handler, OP_READ, hotdogs_client)) {
                 perror("selector_register error");
-                close_hotdogs_connection(hotdogs_client);
+                close(hotdogs_client->client_socket);
+                clear_hotdogs_client(hotdogs_client);
                 return;
             }
             

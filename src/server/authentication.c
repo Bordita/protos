@@ -110,7 +110,7 @@ const struct parser_definition * auth_parser_definition(void) {
 }
 
 auth_event_type auth_parser_read(client_socks5 * client, struct buffer *buffer) {
-    struct parser_event *event;
+    const struct parser_event *event;
     size_t count;
     uint8_t *bufptr;
 

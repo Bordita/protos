@@ -134,6 +134,8 @@ static unsigned hotdogs_auth_read(struct selector_key *key) {
                 // If we reach this state, it means we have read all the authentication data
                 auth_read_complete = true; // Authentication data read complete
                 break;
+            default:
+            ;
         }
     }
 
@@ -306,6 +308,23 @@ static unsigned hotdogs_error_handler(struct selector_key *key) {
     add_failed_connection();
     close_hotdogs_connection(key);
     return HOTDOGS_ERROR;
+}
+
+void clear_hotdogs_client(client_hotdogs * client){
+    buffer_reset(&client->read_buffer);
+    buffer_reset(&client->write_buffer);
+    
+    if (client->raw_buffer_a) {
+        free(client->raw_buffer_a);
+        client->raw_buffer_a = NULL;
+    }
+    
+    if (client->raw_buffer_b) {
+        free(client->raw_buffer_b);
+        client->raw_buffer_b = NULL;
+    }
+
+    free(client);
 }
 
 

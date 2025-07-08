@@ -8,7 +8,7 @@
 #define FILE_HEADER "TIMESTAMP\tUSERNAME\tCLIENT IP\tCLIENT PORT\tDEST ADDR\tDEST PORT\n"
 #define FILE_LOG_FORMAT "%s\t%s\t%s\t%u\t%s\t%u\n"
 
-static char *log_file = LOG_FILE;
+static const char *log_file = LOG_FILE;
 
 void log_init(void) {
     FILE *file = fopen(log_file, "w");

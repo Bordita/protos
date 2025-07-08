@@ -170,7 +170,6 @@ int main(int argc, char ** argv){
     } else {
         return_value = ERROR_VALUE;
     }
-    printf("Closing client connection...\n");
 
 cleanup:
     freeActions(actions);

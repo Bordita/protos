@@ -83,7 +83,7 @@ const struct parser_definition * greeting_parser_definition(void) {
 }
 
 greeting_event_type parser_read(client_socks5 * client, struct buffer *buffer) {
-    struct parser_event *event;
+    const struct parser_event *event;
     greeting_event_type last_event = GREETING_EVENT_ERROR;
      while (buffer_can_read(buffer)) {
         const uint8_t byte = buffer_read(buffer);

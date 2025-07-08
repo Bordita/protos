@@ -122,7 +122,7 @@ const struct parser_definition * request_parser_definition(void) {
 }
 
 request_event_type request_parser_read(client_socks5 * client, struct buffer *buffer) {
-    struct parser_event *event;
+    const struct parser_event *event;
     size_t count;
     uint8_t *bufptr;
     request_event_type last_event = REQUEST_EVENT_ERROR;

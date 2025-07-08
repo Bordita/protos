@@ -130,8 +130,8 @@ UserList * create_user(const char *username, const char *password) {
     new_user->password = strdup(password);
 
     if (new_user->username == NULL || new_user->password == NULL) {
-        free(new_user->username);
-        free(new_user->password);
+        free((void*)new_user->username);
+        free((void*)new_user->password);
         free(new_user);
         return NULL; // Memory allocation failed
     }

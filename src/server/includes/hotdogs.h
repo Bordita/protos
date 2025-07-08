@@ -103,5 +103,6 @@ typedef struct {
 const struct state_definition * get_hotdogs_states(void);
 void close_hotdogs_connection(struct selector_key *key);
 void init_hotdogs_client(client_hotdogs *client, int client_socket);
+void clear_hotdogs_client(client_hotdogs * client);
 
 #endif

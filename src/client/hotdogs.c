@@ -274,6 +274,11 @@ void print_error_msg(response_status status){
 }
 
 response_status recv_and_print_data(retr_option optn, uint16_t len){
+    if(len == 0){
+        printf("No %s available for listing.\n", optn == LIST_USERS ? "users": "logs");
+        return SUCCESS_RESPONSE;
+    }
+    
     uint8_t * data = malloc(len);
     if(data == NULL){
         return WHO_LET_BRO_COOK_RESPONSE;
