@@ -350,6 +350,8 @@ static socks5_states request_read(struct selector_key * key) {
             }
             return REQUEST_WRITE_ERROR;
             break;
+        default:
+            break;
         // default:
         //     if (selector_set_interest_key(key, OP_READ) != SELECTOR_SUCCESS) {
         //         return ERROR;

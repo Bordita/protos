@@ -240,6 +240,8 @@ static unsigned hotdogs_request_read(struct selector_key *key) {
             case HOTDOGS_PARSE_PASSWORD:
                 request_complete = parse_request_password(client, c);
                 break;
+            default:
+                break;
         }
         if (request_complete) {
             break;
@@ -834,7 +836,7 @@ static bool parse_request_username(client_hotdogs *client, uint8_t c){
         }
     } else {
         client->request_parser.current_parse_state = HOTDOGS_PARSE_ERROR; // Invalid username length
-        client->current_response_status = WHO_LET_BRO_COOK;
+        client->current_response_status = WHO_LET_BRO_COOK_RESPONSE;
         return true; // Error
     }
     

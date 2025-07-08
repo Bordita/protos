@@ -32,7 +32,7 @@ void add_action(Action action) {
     actions[actions_count++] = action;
 }
 
-void print_help() {
+void print_help(void) {
     printf("\nHotDogs Protocol Client Usage:\n");
     printf("  -u user:pass         Authenticates with username and password (required)\n");
     printf("  -ip <address>        Provides server IP address (default: 127.0.0.1)\n");
