@@ -48,7 +48,11 @@ void log_socks5_client_access(client_socks5 * client) {
         inet_ntop(AF_INET6, &s->sin6_addr, destination_ipstr, sizeof(destination_ipstr));
         destination_port = ntohs(s->sin6_port);
     }
-    log_access(client->auth_info.username, client_ipstr, client_port, destination_ipstr, destination_port);
+    char * username = "anonymous";
+    if(client->auth_info.authenticated) {
+        username = client->auth_info.username;
+    }
+    log_access(username, client_ipstr, client_port, destination_ipstr, destination_port);
 }
 
 socks5_reply errno_to_socks5_reply(int err) {
