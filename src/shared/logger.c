@@ -1,14 +1,22 @@
 #include "includes/logger.h"
 
 #define LOG_FILE "./access.log"
+#define HOTDOGS_LOG_FILE "./hotdogs_access.log"
+#define HOTDOGS_ACTIONS_LOG_FILE "./hotdogs_actions.log"
 
 #define TIMESTAMP_FORMAT "%Y-%m-%d %H:%M:%S"
 #define TIMESTAMP_SIZE 20
+#define HOTDOGS_FILE_HEADER "TIMESTAMP\tUSERNAME\n"
+#define HOTDOGS_FILE_LOG_FORMAT "%s\t%s\n"
+#define HOTDOGS_ACTIONS_FILE_HEADER "TIMESTAMP\tUSERNAME\tACTION\tVALUES\n"
+#define HOTDOGS_ACTIONS_FILE_LOG_FORMAT "%s\t%s\t%s\t%s\n"
 
 #define FILE_HEADER "TIMESTAMP\tUSERNAME\tCLIENT IP\tCLIENT PORT\tDEST ADDR\tDEST PORT\n"
 #define FILE_LOG_FORMAT "%s\t%s\t%s\t%u\t%s\t%u\n"
 
 static const char *log_file = LOG_FILE;
+static const char *hotdogs_log_file = HOTDOGS_LOG_FILE;
+static const char *hotdogs_actions_log_file = HOTDOGS_ACTIONS_LOG_FILE;
 
 void log_init(void) {
     FILE *file = fopen(log_file, "w");
@@ -62,6 +70,34 @@ char * get_logs(void){
     fclose(file);
 
     return buffer;
+}
+
+void log_hotdogs_action(const char *username, const char *action, const char *values) {
+    FILE *file = fopen(hotdogs_actions_log_file, "a");
+    if (!file) return;
+
+    char timestamp[TIMESTAMP_SIZE];
+    time_t now = time(NULL);
+    struct tm tm_info;
+    localtime_r(&now, &tm_info);
+    strftime(timestamp, sizeof(timestamp), TIMESTAMP_FORMAT, &tm_info);
+
+    fprintf(file, HOTDOGS_ACTIONS_FILE_LOG_FORMAT, timestamp, username, action, values);
+    fclose(file);
+}
+
+void log_hotdogs_access(const char *username) {
+    FILE *file = fopen(hotdogs_log_file, "a");
+    if (!file) return;
+
+    char timestamp[TIMESTAMP_SIZE];
+    time_t now = time(NULL);
+    struct tm tm_info;
+    localtime_r(&now, &tm_info);
+    strftime(timestamp, sizeof(timestamp), TIMESTAMP_FORMAT, &tm_info);
+
+    fprintf(file, HOTDOGS_FILE_LOG_FORMAT, timestamp, username);
+    fclose(file);
 }
 
 int get_logs_separator(char *buffer, size_t buffer_size, const char *separator, size_t size_separator){

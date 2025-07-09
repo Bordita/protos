@@ -15,6 +15,9 @@ void clean_logs(void);
 
 void set_log_file(const char *filename);
 
+void log_hotdogs_access(const char *username);
+void log_hotdogs_action(const char *username, const char *action, const char *values);
+
 char * get_logs(void);
 int get_logs_separator(char *buffer, size_t buffer_size, const char *separator, size_t size_separator);
 

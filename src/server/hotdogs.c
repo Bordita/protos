@@ -187,6 +187,7 @@ static unsigned hotdogs_auth_response(struct selector_key *key) {
         }
 
         if (client->authenticated == AUTH_SUCCESS) {
+            log_hotdogs_access(client->username);
             return HOTDOGS_REQUEST;    // AUTH_SUCCESS then switch to request state
         } else {
             return HOTDOGS_AUTH;        // AUTH_FAILED then switch back to auth state
@@ -470,6 +471,7 @@ static bool prepare_retr_response(client_hotdogs *client) {
 }
 
 static bool prepare_metrics_response(client_hotdogs *client) {
+    log_hotdogs_action(client->username, "LIST METRICS", "-");
     size_t size;
     uint8_t *buf = buffer_write_ptr(&client->write_buffer, &size);
     
@@ -519,6 +521,7 @@ static bool prepare_metrics_response(client_hotdogs *client) {
 }
 
 static bool prepare_users_response(client_hotdogs *client) {
+    log_hotdogs_action(client->username, "LIST USERS", "");
     size_t size;
     uint8_t *buf = buffer_write_ptr(&client->write_buffer, &size);
     
@@ -556,6 +559,7 @@ static bool prepare_users_response(client_hotdogs *client) {
 }
 
 static bool prepare_logs_response(client_hotdogs *client) {
+    log_hotdogs_action(client->username, "LIST LOGS", "");
     size_t size;
     uint8_t *buf = buffer_write_ptr(&client->write_buffer, &size);
     
@@ -608,18 +612,26 @@ static bool prepare_mod_response(client_hotdogs *client) {
 }
 
 static void execute_mod_actions(client_hotdogs *client) {
+    char values[128];
     switch (client->current_option) {
         case BUF_SIZE:
             socks_set_buffer_size(client->request_parser.new_buffer_size);
+            snprintf(values, sizeof(values), "%u", client->request_parser.new_buffer_size);
+            log_hotdogs_action(client->username, "SET BUF_SIZE", values);
             break;
         case ADD_USER:
             add_user(client->request_parser.username, client->request_parser.password); 
+            snprintf(values, sizeof(values), "%s, *****", client->request_parser.username);
+            log_hotdogs_action(client->username, "ADD USER", values);
             break;
         case REMOVE_USER:
             remove_user(client->request_parser.username);
+            snprintf(values, sizeof(values), "%s", client->request_parser.username);
+            log_hotdogs_action(client->username, "REMOVE USER", values);
             break;
     }
 }
+
 
 
 // Parse requests
