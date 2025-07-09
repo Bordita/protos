@@ -102,6 +102,7 @@ static socks5_states connect_destination(struct selector_key * key){
     
     selector_status ret = selector_fd_set_nio(client->destination_socket);
     if (ret != SELECTOR_SUCCESS) {
+        client->destination_socket = -1;
         close(client->destination_socket);
         return ERROR;
     }
@@ -114,11 +115,13 @@ static socks5_states connect_destination(struct selector_key * key){
     }
 
     if (SELECTOR_SUCCESS != selector_set_interest(key->s, client->client_socket, OP_NOOP)) {
+        client->destination_socket = -1;  
         close(client->destination_socket);
         return ERROR;
     }
     if (SELECTOR_SUCCESS != selector_register(key->s, client->destination_socket, get_connection_fd_handler(), OP_WRITE, client)) {
         close(client->destination_socket);
+        client->destination_socket = -1;
         return ERROR;
     }
     client->connection_attempts++;
