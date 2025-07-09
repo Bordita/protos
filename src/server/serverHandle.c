@@ -194,9 +194,10 @@ static void passive_socket_handler(struct selector_key *key) {
                 return;
             }
             selector_fd_set_nio(client->client_socket);
+            int selector_status;
 
-            if (selector_register(selector, client->client_socket, &socks_connection_fd_handler,OP_READ, client)) {
-                perror("selector_register error");
+            if (SELECTOR_SUCCESS != ( selector_status = selector_register(selector, client->client_socket, &socks_connection_fd_handler,OP_READ, client))) {
+                fprintf(stderr, "Selector register error: %s\n", selector_error(selector_status));
                 close_connection(client);
                 return;
             }
@@ -305,7 +306,7 @@ static int create_socket(char * addr, char * port,const struct fd_handler * sele
 
     int register_ret;
     if ((register_ret = selector_register(selector, fd, selector_handler,OP_READ, NULL)) != SELECTOR_SUCCESS) {
-        fprintf(stderr, "Passive socket register error: %s",selector_error(register_ret));
+        fprintf(stderr, "Passive socket register error: %s\n",selector_error(register_ret));
         error = true;
         goto finally;
     }
@@ -335,7 +336,7 @@ int server_handler(char * socks_addr, char * socks_port, char * hot_dogs_addr,ch
     struct selector_init selector_init_struct = {SIGALRM, selector_timeout};
     
      if ((selector_init_ret = selector_init(&selector_init_struct)) != SELECTOR_SUCCESS) {
-        fprintf(stderr, "Selector init error: %s",selector_error(selector_init_ret));
+        fprintf(stderr, "Selector init error: %s\n",selector_error(selector_init_ret));
         goto finally;
     }
     selector = selector_new(INITIAL_SELECTOR_ITEMS);
@@ -355,7 +356,7 @@ int server_handler(char * socks_addr, char * socks_port, char * hot_dogs_addr,ch
     while (1) {
         int selector_status = selector_select(selector);
         if (selector_status != SELECTOR_SUCCESS){
-            fprintf(stderr, "Selector Select Error: %s",selector_error(selector_status));
+            fprintf(stderr, "Selector Select Error: %s\n",selector_error(selector_status));
             goto finally;
         }
     }
