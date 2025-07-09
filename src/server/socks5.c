@@ -4,6 +4,7 @@
 #include "../shared/includes/stm.h"
 #include "../shared/includes/selector.h"
 #include "../shared/includes/metrics.h"
+#include "../shared/includes/logger.h"
 #include "greeting.h"
 #include "authentication.h"
 #include "request.h"
@@ -20,6 +21,35 @@ static void* request_resolv_thread(void * arg);
 static socks5_states try_next_address(struct selector_key * key);
 
 uint32_t buffer_size = MAX_SOCKS5_BUFFER_SIZE; 
+
+void log_socks5_client_access(client_socks5 * client) {
+    // Obtener IP y puerto del cliente
+    char client_ipstr[INET6_ADDRSTRLEN];
+    char destination_ipstr[INET6_ADDRSTRLEN];
+    int client_port;
+    int destination_port;
+
+    if (client->client_addr.ss_family == AF_INET) {
+        struct sockaddr_in *s = (struct sockaddr_in *)&client->client_addr;
+        inet_ntop(AF_INET, &s->sin_addr, client_ipstr, sizeof(client_ipstr));
+        client_port = ntohs(s->sin_port);
+    } else { // AF_INET6
+        struct sockaddr_in6 *s = (struct sockaddr_in6 *)&client->client_addr;
+        inet_ntop(AF_INET6, &s->sin6_addr, client_ipstr, sizeof(client_ipstr));
+        client_port = ntohs(s->sin6_port);
+    }
+
+    if (client->destination_addr.ss_family == AF_INET) {
+        struct sockaddr_in *s = (struct sockaddr_in *)&client->destination_addr;
+        inet_ntop(AF_INET, &s->sin_addr, destination_ipstr, sizeof(destination_ipstr));
+        destination_port = ntohs(s->sin_port);
+    } else { // AF_INET6
+        struct sockaddr_in6 *s = (struct sockaddr_in6 *)&client->destination_addr;
+        inet_ntop(AF_INET6, &s->sin6_addr, destination_ipstr, sizeof(destination_ipstr));
+        destination_port = ntohs(s->sin6_port);
+    }
+    log_access(client->auth_info.username, client_ipstr, client_port, destination_ipstr, destination_port);
+}
 
 socks5_reply errno_to_socks5_reply(int err) {
     switch (err) {
@@ -448,6 +478,7 @@ static socks5_states request_write(struct selector_key * key) {
 
     if (!buffer_can_read(&client->write_buffer)) {
         if (SELECTOR_SUCCESS == selector_set_interest_key(key, OP_READ) && SELECTOR_SUCCESS == selector_set_interest(key->s, client->destination_socket, OP_READ)) {
+            log_socks5_client_access(client);
             return RELAY_DATA;
         }
         return ERROR;
