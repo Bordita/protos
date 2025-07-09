@@ -135,9 +135,6 @@ typedef struct client_socks5 {
 
     struct parser* parser;
 
-    // TODO
-    // Add structs for relay data
-
     credentials auth_info;
     request_data request_info;
 
