@@ -177,7 +177,7 @@ static void passive_socket_handler(struct selector_key *key) {
             client->connection_attempts = 0;
             client->resolved_addr = NULL;
             client->resolved_addr_current = NULL;
-
+            client->destination_socket = -1;
             client->stm.initial = GREETING_READ;
             client->stm.max_state = DONE;
             client->stm.states = get_socks5_states();
