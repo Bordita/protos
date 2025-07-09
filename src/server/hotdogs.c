@@ -646,8 +646,8 @@ static bool parse_auth_version(client_hotdogs *client, uint8_t c) {
 
 static bool parse_auth_ulen(client_hotdogs *client, uint8_t c) {
     if (c < 1 || c > MAX_UNAME_LEN) {
-        client->auth_parser.current_parse_state = HOTDOGS_PARSE_ERROR; // Invalid username length
-        client->authenticated = WHO_LET_BRO_COOK; // Invalid password length
+        client->auth_parser.current_parse_state = HOTDOGS_PARSE_ERROR;
+        client->authenticated = WHO_LET_BRO_COOK; // Invalid username length
         return true;
     }
 
@@ -667,8 +667,8 @@ static bool parse_auth_username(client_hotdogs *client, uint8_t c) {
             client->auth_parser.current_parse_state = HOTDOGS_PARSE_PLEN; // Next state   
         } 
     } else {
-        client->auth_parser.current_parse_state = HOTDOGS_PARSE_ERROR; // Invalid username length
-        client->authenticated = WHO_LET_BRO_COOK; // Invalid password length
+        client->auth_parser.current_parse_state = HOTDOGS_PARSE_ERROR;
+        client->authenticated = WHO_LET_BRO_COOK; // Invalid username length
         return true; // Error
     }
     return false;
