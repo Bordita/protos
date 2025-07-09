@@ -840,6 +840,7 @@ static bool parse_request_username(client_hotdogs *client, uint8_t c){
                 client->request_parser.current_parse_state = HOTDOGS_PARSE_PLEN; // Next state for password length
             } else if (client->request_parser.current_option == REMOVE_USER) {
                 client->request_parser.current_parse_state = HOTDOGS_PARSE_DONE; // No more options
+                client->current_response_status = SUCCESS_RESPONSE; // Set response status
                 return true; // Complete
             } else {
                 client->request_parser.current_parse_state = HOTDOGS_PARSE_ERROR; // Invalid option
