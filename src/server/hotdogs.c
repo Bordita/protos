@@ -878,6 +878,7 @@ static bool parse_request_password(client_hotdogs *client, uint8_t c){
         if (client->request_parser.password_remaining == 0) {
             client->request_parser.password[client->request_parser.password_len] = '\0'; // Null-terminate the password
             client->request_parser.current_parse_state = HOTDOGS_PARSE_DONE; // Next state
+            client->current_response_status = SUCCESS_RESPONSE; // Set response status
             return true; // Complete
         }
     } else {
