@@ -551,7 +551,7 @@ static socks5_states relay_data_read(struct selector_key * key) {
     } else if (n == 0) {
         // EOF, el otro extremo cerró la conexión
         fprintf(stderr, "relay_data_read: recv devolvió 0 (EOF) en fd %d\n", fd);
-        return ERROR;
+        return DONE;
     } else {
         // Error en recv
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -605,7 +605,7 @@ static socks5_states relay_data_write(struct selector_key * key) {
         } else if (n == 0) {
             // EOF, el otro extremo cerró la conexión
             fprintf(stderr, "relay_data_write: send devolvió 0 (EOF) en fd %d\n", fd);
-            return ERROR;
+            return DONE;
         } else {
             // Error en send
             if (errno == EAGAIN || errno == EWOULDBLOCK) {

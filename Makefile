@@ -4,6 +4,7 @@ SERVER_SOURCES=$(wildcard src/server/*.c)
 CLIENT_SOURCES=$(wildcard src/client/*.c)
 SHARED_SOURCES=$(wildcard src/shared/*.c)
 ARGS_SOURCES=$(wildcard src/args/*.c)
+CONCURRENCE_TEST_SOURCE=src/test/concurrenceTest.c
 
 OBJECTS_FOLDER=./obj
 OUTPUT_FOLDER=./bin
@@ -12,19 +13,22 @@ SERVER_OBJECTS=$(SERVER_SOURCES:src/%.c=obj/%.o)
 CLIENT_OBJECTS=$(CLIENT_SOURCES:src/%.c=obj/%.o)
 SHARED_OBJECTS=$(SHARED_SOURCES:src/%.c=obj/%.o)
 ARGS_OBJECTS=$(ARGS_SOURCES:src/%.c=obj/%.o)
+CONCURRENCE_TEST_OBJECTS=$(CONCURRENCE_TEST_SOURCE:src/%.c=obj/%.o)
 
 SERVER_OUTPUT_FILE=$(OUTPUT_FOLDER)/server
 CLIENT_OUTPUT_FILE=$(OUTPUT_FOLDER)/client
+CONCURRENCE_TEST_OUTPUT=$(OUTPUT_FOLDER)/concurrenceTest
 
 SERVER_DEBUG_OUTPUT_FILE=$(OUTPUT_FOLDER)/serverdbg
 CLIENT_DEBUG_OUTPUT_FILE=$(OUTPUT_FOLDER)/clientdbg
 
-all: server client
+all: server client concurrence_test
 
 debug: server_debug client_debug
 
 server: $(SERVER_OUTPUT_FILE)
 client: $(CLIENT_OUTPUT_FILE)
+concurrence_test: $(CONCURRENCE_TEST_OUTPUT)
 
 $(SERVER_OUTPUT_FILE): $(SERVER_OBJECTS) $(SHARED_OBJECTS) $(ARGS_OBJECTS)
 	mkdir -p $(OUTPUT_FOLDER)
@@ -34,8 +38,11 @@ $(CLIENT_OUTPUT_FILE): $(CLIENT_OBJECTS) $(SHARED_OBJECTS) $(ARGS_OBJECTS)
 	mkdir -p $(OUTPUT_FOLDER)
 	$(COMPILER) $(COMPILERFLAGS) $(LDFLAGS) $(CLIENT_OBJECTS) $(SHARED_OBJECTS) $(ARGS_OBJECTS) -o $(CLIENT_OUTPUT_FILE)
 
-server_debug: $(SERVER_DEBUG_OUTPUT_FILE)
+$(CONCURRENCE_TEST_OUTPUT): $(CONCURRENCE_TEST_OBJECTS)
+	mkdir -p $(OUTPUT_FOLDER)
+	$(COMPILER) $(COMPILERFLAGS) $(LDFLAGS) $< -o $@
 
+server_debug: $(SERVER_DEBUG_OUTPUT_FILE)
 client_debug: $(CLIENT_DEBUG_OUTPUT_FILE)
 
 $(SERVER_DEBUG_OUTPUT_FILE): $(SERVER_OBJECTS) $(SHARED_OBJECTS) $(ARGS_OBJECTS)
@@ -55,6 +62,7 @@ obj/%.o: src/%.c
 	mkdir -p $(OBJECTS_FOLDER)/client
 	mkdir -p $(OBJECTS_FOLDER)/shared
 	mkdir -p $(OBJECTS_FOLDER)/args
+	mkdir -p $(OBJECTS_FOLDER)/test
 	$(COMPILER) $(COMPILERFLAGS) -c $< -o $@
 
-.PHONY: all server client clean server_debug client_debug debug
+.PHONY: all server client concurrence_test clean server_debug client_debug debug
