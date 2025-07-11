@@ -1,11 +1,11 @@
+#include <netdb.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <signal.h>
 #include <sys/wait.h>
 #include <arpa/inet.h>
-#include <netdb.h>
 #include <sys/socket.h>
 #include <errno.h>
 
@@ -26,11 +26,44 @@ void signal_handler(int sig) {
     printf("\nSignal %d received, cleaning up...\n", sig);
     for (int i = 0; i < child_count; i++) {
         if (child_pids[i] > 0) {
-            kill(child_pids[i], SIGTERM);
+            kill(child_pids[i], SIGUSR1); // Send SIGUSR1 for graceful shutdown
+        }
+    }
+    // Wait for all children to exit
+    int status;
+    pid_t pid;
+    for (int i = 0; i < child_count; i++) {
+        if (child_pids[i] > 0) {
+            pid = waitpid(child_pids[i], &status, 0);
+            if (pid > 0) {
+                if (WIFEXITED(status)) {
+                    int code = WEXITSTATUS(status);
+                    if (code != 0) {
+                        fprintf(stderr, "Child %d exited with error %d\n", pid, code);
+                    }
+                } else if (WIFSIGNALED(status)) {
+                    fprintf(stderr, "Child %d killed by signal %d\n", pid, WTERMSIG(status));
+                }
+            }
         }
     }
     cleanup();
     exit(0);
+}
+
+// Child process socket descriptor (global for signal handler)
+int child_sockfd = -1;
+
+void child_sigusr1_handler(int sig) {
+    if (child_sockfd != -1) {
+        shutdown(child_sockfd, SHUT_WR); // Send FIN
+        // Optionally, read until recv returns 0 (EOF)
+        char buf[256];
+        while (recv(child_sockfd, buf, sizeof(buf), 0) > 0) {}
+        close(child_sockfd); // Fully close socket
+        child_sockfd = -1;
+    }
+    _exit(0); // Exit immediately
 }
 
 void sigchld_handler(int sig) {
@@ -239,6 +272,7 @@ int socks5_connect_ip(int sockfd, const char *ip_str, int port) {
 
 int run_client(const char *orig, int orig_port,const char *dest, int dest_port) {
     int sockfd = connect_tcp(orig, orig_port);
+    child_sockfd = sockfd; // Set global for signal handler
     if (sockfd < 0) {
        fprintf(stderr, "Error connecting to SOCKS5 proxy\n");
        return -1;
@@ -281,6 +315,7 @@ int run_client(const char *orig, int orig_port,const char *dest, int dest_port) 
     }
 
     close(sockfd);
+    child_sockfd = -1;
     return 0;
 }
 
@@ -355,6 +390,12 @@ int main(int argc, char *argv[]) {
         } else if (pid == 0) {
             signal(SIGINT, SIG_IGN);
             signal(SIGTERM, SIG_DFL);
+            struct sigaction sa_usr1 = {0};
+            sa_usr1.sa_handler = child_sigusr1_handler;
+            sigemptyset(&sa_usr1.sa_mask);
+            sa_usr1.sa_flags = 0;
+            sigaction(SIGUSR1, &sa_usr1, NULL);
+            child_sockfd = -1;
             int r = run_client(orig,org_port,host, dest_port);
             exit(r == 0 ? 0 : 1);
         } else {
