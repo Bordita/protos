@@ -50,6 +50,10 @@ void close_connection(client_socks5 * client) {
         freeaddrinfo(client->resolved_addr);
     }
 
+    if (client->parser != NULL) {
+        parser_destroy(client->parser);
+    }
+    
     buffer_reset(&client->read_buffer);
     buffer_reset(&client->write_buffer);
     

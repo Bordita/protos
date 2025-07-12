@@ -82,6 +82,7 @@ socks5_reply errno_to_socks5_reply(int err) {
 static inline void clear_parsing_state(client_socks5 *client) {
     parser_destroy(client->parser);
     memset(&client->parsing_state, 0, sizeof(client->parsing_state));
+    client->parser = NULL;
 }
 
 static socks5_states connect_destination(struct selector_key * key){
