@@ -62,14 +62,13 @@ usage(const char* progname)
     fprintf(stderr,
             "Usage: %s [OPTION]...\n"
             "\n"
-            "   -h               Imprime la ayuda y termina.\n"
-            "   -l <SOCKS addr>  Dirección donde servirá el proxy SOCKS.\n"
-            "   -L <conf  addr>  Dirección donde servirá el servicio de management.\n"
-            "   -p <SOCKS port>  Puerto entrante conexiones SOCKS.\n"
-            "   -P <conf port>   Puerto entrante conexiones configuracion\n"
-            "   -u <name>:<pass> Usuario y contraseña de usuario que puede usar el proxy. Hasta 10.\n"
-            "   -v               Imprime información sobre la versión versión y termina.\n"
-
+            "   -h               Prints help and exits.\n"
+            "   -l <SOCKS addr>  Address where the SOCKS proxy will be served.\n"
+            "   -L <conf  addr>  Address where the management service will be served.\n"
+            "   -p <SOCKS port>  Incoming port for SOCKS connections.\n"
+            "   -P <conf port>   Incoming port for management connections.\n"
+            "   -u <name>:<pass> Username and password for users allowed to use the proxy. Up to 10.\n"
+            "   -v               Prints version information and exits.\n"
             "\n",
             progname);
     exit(1);

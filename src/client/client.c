@@ -32,8 +32,8 @@ void add_action(Action action) {
     actions[actions_count++] = action;
 }
 
-void print_help(void) {
-    printf("\nHotDogs Protocol Client Usage:\n");
+static void print_help(const char * program_name) {
+    printf("Usage: %s [OPTION]...\n\n", program_name);
     printf("  -u user:pass         Authenticates with username and password (required)\n");
     printf("  -ip <address>        Provides server IP address (default: 127.0.0.1)\n");
     printf("  -port <port>         Provides server port (default: 42069)\n");
@@ -50,7 +50,7 @@ void print_help(void) {
 void _parse_args(int argc, char **argv) {
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-h") == 0) {
-            print_help();
+            print_help(argv[0]);
             exit(0);
         } else if (strcmp(argv[i], "-u") == 0 && i + 1 < argc) {
             char *token = strtok(argv[++i], ":");
