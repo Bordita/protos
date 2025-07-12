@@ -14,8 +14,6 @@
 pid_t *child_pids = NULL;
 int child_count = 0;
 
-
-void cleanup() {
 void cleanup(void) {
     if (child_pids) {
         free(child_pids);
