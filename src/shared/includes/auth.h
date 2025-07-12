@@ -1,6 +1,8 @@
 #ifndef __AUTH_H__
 #define __AUTH_H__
 
+#define MAX_USERS 10
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>

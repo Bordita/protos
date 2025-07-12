@@ -237,7 +237,6 @@ static void passive_socket_handler(struct selector_key *key) {
                 return;
             }
             
-            add_hdp_current_connection();
             break;
         case SOCKET_TYPE_UNKNOWN:
             fprintf(stderr, "Unknown socket type for fd %d\n", fd);

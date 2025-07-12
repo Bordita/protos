@@ -6,34 +6,37 @@ typedef struct UserList {
     struct UserList *next;
 } UserList;
 
+int users_size = 0;
 static UserList * users_list = NULL;
 bool auth_enabled = false;
 
 UserList * create_user(const char *username, const char *password);
 
 int add_user(const char * username, const char * password) {
-    // If the list is empty, create a new user and set it as the head of the list
+    if(users_size == MAX_USERS){
+        return 1;
+    }
+
     if (users_list == NULL){
         users_list = create_user(username, password);
         if (users_list == NULL) {
-            return -1; // Memory allocation failed
+            return -1;
         }
-        return 0; // User added successfully
+        return 0;
     }
 
-    // Check if the user already exists and add it to the end of the list
     UserList * current = users_list;
     while (current != NULL) {
         if (strcmp(current->username, username) == 0) {
-            return -1; // User already exists   
+            return -1;  
         }
 
         if (current->next == NULL) {
             current->next = create_user(username, password);
             if (current->next == NULL) {
-                return -1; // Memory allocation failed
+                return -1;
             }
-            return 0; // User added successfully
+            return 0;
         }
     
         current = current->next;
@@ -42,28 +45,32 @@ int add_user(const char * username, const char * password) {
 }
 
 void remove_user(const char *username) {
+    if(users_size == 0){
+        return;
+    }
+
     UserList * current = users_list;
     UserList * previous = NULL;
 
     while (current != NULL) {
         if (strcmp(current->username, username) == 0) {
-            // User found, remove it from the list
             if (previous == NULL) {
-                // Removing the head of the list
                 users_list = current->next;
             } else {
-                // Removing a user from the middle or end of the list
                 previous->next = current->next;
             }
-            free((void *) current->username); // Free the username string
-            free((void *) current->password); // Free the password string
+            free((void *) current->username);
+            free((void *) current->password);
             free(current);
-            return; // User removed successfully
+            users_size--;
+            if(users_size == 0){
+                auth_enabled = false;
+            }
+            return;
         }
         previous = current;
         current = current->next;
     }
-
 }
 
 int authenticate_user(const char *username, const char *password) {
@@ -137,6 +144,8 @@ UserList * create_user(const char *username, const char *password) {
     }
 
     new_user->next = NULL;
+    auth_enabled = true;
+    users_size++;
     return new_user;
 }
 

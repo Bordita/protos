@@ -113,7 +113,7 @@ greeting_event_type parser_read(client_socks5 * client, struct buffer *buffer) {
                             client->selected_method = METHOD_NO_ACCEPTABLE_METHODS;
                             
                             for (int i = 0; i < client->parsing_state.greeting.methods_read; i++) {
-                                if (client->parsing_state.greeting.received_methods[i] == METHOD_NO_AUTHENTICATION_REQUIRED) { 
+                                if (client->parsing_state.greeting.received_methods[i] == METHOD_NO_AUTHENTICATION_REQUIRED && !authentication_enabled()) { 
                                     client->selected_method = METHOD_NO_AUTHENTICATION_REQUIRED;
                                 } else if (client->parsing_state.greeting.received_methods[i] == METHOD_USERNAME_PASSWORD) { 
                                     client->selected_method = METHOD_USERNAME_PASSWORD;
