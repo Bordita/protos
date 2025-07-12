@@ -16,6 +16,7 @@ int child_count = 0;
 
 
 void cleanup() {
+void cleanup(void) {
     if (child_pids) {
         free(child_pids);
         child_pids = NULL;
