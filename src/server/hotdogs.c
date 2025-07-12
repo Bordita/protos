@@ -621,12 +621,12 @@ static void execute_mod_actions(client_hotdogs *client) {
             break;
         case ADD_USER:
             add_user(client->request_parser.username, client->request_parser.password); 
-            snprintf(values, sizeof(values), "%s, *****", client->request_parser.username);
+            snprintf(values, sizeof(values), "%.*s, *****", (int)(sizeof(values) - 8 - 1), client->request_parser.username);
             log_hotdogs_action(client->username, "ADD USER", values);
             break;
         case REMOVE_USER:
             remove_user(client->request_parser.username);
-            snprintf(values, sizeof(values), "%s", client->request_parser.username);
+            snprintf(values, sizeof(values), "%.*s", (int)(sizeof(values) - 1), client->request_parser.username);
             log_hotdogs_action(client->username, "REMOVE USER", values);
             break;
     }
