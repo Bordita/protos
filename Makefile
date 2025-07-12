@@ -24,7 +24,7 @@ CLIENT_DEBUG_OUTPUT_FILE=$(OUTPUT_FOLDER)/clientdbg
 
 all: server client concurrence_test
 
-debug: server_debug client_debug
+debug: server_debug client_debug concurrence_test
 
 server: $(SERVER_OUTPUT_FILE)
 client: $(CLIENT_OUTPUT_FILE)
@@ -65,4 +65,4 @@ obj/%.o: src/%.c
 	mkdir -p $(OBJECTS_FOLDER)/test
 	$(COMPILER) $(COMPILERFLAGS) -c $< -o $@
 
-.PHONY: all server client concurrence_test clean server_debug client_debug debug
+.PHONY: all server client concurrence_test clean server_debug client_debug debug 
