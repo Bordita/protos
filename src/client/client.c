@@ -6,7 +6,7 @@
 
 #define MAX_ACTIONS 16
 #define DEFAULT_IP "127.0.0.1"
-#define DEFAULT_PORT 42069
+#define DEFAULT_PORT 8080
 #define MAX_PORT 65535
 
 #define SUCCESS_VALUE 0
@@ -36,7 +36,7 @@ static void print_help(const char * program_name) {
     printf("Usage: %s [OPTION]...\n\n", program_name);
     printf("  -u user:pass         Authenticates with username and password (required)\n");
     printf("  -ip <address>        Provides server IP address (default: 127.0.0.1)\n");
-    printf("  -port <port>         Provides server port (default: 42069)\n");
+    printf("  -port <port>         Provides server port (default: 8080)\n");
     printf("  -m                   Gets server metrics\n");
     printf("  -lu                  Lists users\n");
     printf("  -ll                  Lists logs\n");
