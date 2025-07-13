@@ -390,11 +390,6 @@ static socks5_states request_read(struct selector_key * key) {
             break;
         default:
             break;
-        // default:
-        //     if (selector_set_interest_key(key, OP_READ) != SELECTOR_SUCCESS) {
-        //         return ERROR;
-        //     }
-        //     return REQUEST_READ;
     }
     
     return REQUEST_READ;
@@ -577,13 +572,9 @@ static socks5_states relay_data_read(struct selector_key * key) {
                 return ERROR;
             }
         } else if (written == 0) {
-            // EOF, el otro extremo cerró la conexión
-            fprintf(stderr, "relay_data_read: send devolvió 0 (EOF) en fd %d\n", other_fd);
             return DONE;
         }
     } else if (n == 0) {
-        // EOF, el otro extremo cerró la conexión
-        fprintf(stderr, "relay_data_read: recv devolvió 0 (EOF) en fd %d\n", fd);
         return DONE;
     } else {
         // Error en recv
@@ -636,8 +627,6 @@ static socks5_states relay_data_write(struct selector_key * key) {
                 add_transfered_bytes(n);
             }
         } else if (n == 0) {
-            // EOF, el otro extremo cerró la conexión
-            fprintf(stderr, "relay_data_write: send devolvió 0 (EOF) en fd %d\n", fd);
             return DONE;
         } else {
             // Error en send
