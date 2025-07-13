@@ -511,7 +511,7 @@ static void relay_data_init(unsigned state, struct selector_key * key) {
 static socks5_states relay_data_read(struct selector_key * key) {
     client_socks5 * client = (client_socks5 *)key->data;
     ssize_t n;
-    size_t space;
+    size_t count;
     uint8_t * write_ptr;
     int fd;
     buffer * target_buffer;
@@ -533,11 +533,11 @@ static socks5_states relay_data_read(struct selector_key * key) {
         return ERROR;
     }
 
-    write_ptr = buffer_write_ptr(target_buffer, &space);
-    if (space == 0) {
+    write_ptr = buffer_write_ptr(target_buffer, &count);
+    if (count == 0) {
         return RELAY_DATA;
     }
-    n = recv(fd, write_ptr, space, MSG_NOSIGNAL);    
+    n = recv(fd, write_ptr, count, MSG_NOSIGNAL);    
     if (n > 0) {
         buffer_write_adv(target_buffer, n);
         if (log_transferred_bytes) {
@@ -545,9 +545,40 @@ static socks5_states relay_data_read(struct selector_key * key) {
         }
         // Habilitar escritura en el otro socket
         int other_fd = (fd == client->client_socket) ? client->destination_socket : client->client_socket;
-        if (selector_set_interest(key->s, other_fd, OP_WRITE) != SELECTOR_SUCCESS) {
-            fprintf(stderr, "relay_data_read: error habilitando OP_WRITE en fd %d\n", other_fd);
-            return ERROR;
+        count = 0;
+        uint8_t * read_ptr = buffer_read_ptr(target_buffer, &count);
+        int written = send(other_fd,read_ptr,count, MSG_NOSIGNAL);
+
+        if(written > 0) { 
+            // Se pudo escribir en destino, avanzar el puntero de lectura del buffer
+            buffer_read_adv(target_buffer,written);
+            if (!log_transferred_bytes) {
+                add_transfered_bytes(written);
+            }
+            // No se pudo escribir todo lo leido del origen al destino, habilitar OP_WRITE en el otro socket
+            if(written < count){
+                if(selector_set_interest(key->s, other_fd, OP_WRITE) != SELECTOR_SUCCESS) {
+                    fprintf(stderr, "relay_data_read: error habilitando OP_WRITE en fd %d\n", other_fd);
+                    return ERROR;
+                }
+            }
+        } else if (written == -1) { 
+             // El socket no está listo para escribir, esperar próximo evento
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                if (selector_set_interest(key->s, other_fd, OP_WRITE) != SELECTOR_SUCCESS) {
+                    fprintf(stderr, "relay_data_read: error habilitando OP_WRITE en fd %d\n", other_fd);
+                    return ERROR;
+                }
+                return RELAY_DATA;
+            } 
+            else {
+                perror("relay_data_read: recv error");
+                return ERROR;
+            }
+        } else if (written == 0) {
+            // EOF, el otro extremo cerró la conexión
+            fprintf(stderr, "relay_data_read: send devolvió 0 (EOF) en fd %d\n", other_fd);
+            return DONE;
         }
     } else if (n == 0) {
         // EOF, el otro extremo cerró la conexión
