@@ -562,6 +562,7 @@ static socks5_states relay_data_read(struct selector_key * key) {
                     return ERROR;
                 }
             }
+            return RELAY_DATA;
         } else if (written == -1) { 
              // El socket no está listo para escribir, esperar próximo evento
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
