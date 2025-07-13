@@ -7,10 +7,10 @@
 #include "../shared/includes/buffer.h"
 #include "../shared/includes/parser.h"
 #include "../shared/includes/selector.h"
-#include "serverHandle.h"
+#include "includes/serverHandle.h"
 #include "../shared/includes/metrics.h"
-#include "greeting.h"
-#include "socks5.h"
+#include "includes/greeting.h"
+#include "includes/socks5.h"
 #include "./includes/hotdogs.h"
 
 typedef enum {
