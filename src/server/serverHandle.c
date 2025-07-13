@@ -150,7 +150,7 @@ static void passive_socket_handler(struct selector_key *key) {
         type = SOCKET_TYPE_HOTDOGS;
     }
 
-    int fds_in_use = get_socks5_current_connections() * FDS_PER_SOCKS_CONNECTION + get_hdp_current_connections() + SERVER_LISTEN_SOCKET_COUNT;
+    int fds_in_use = get_socks5_current_connections() * FDS_PER_SOCKS_CONNECTION + get_hdp_current_connections() + SERVER_LISTEN_SOCKET_COUNT + FDS_RESERVED_BY_OS;
     
     switch (type){
         case SOCKET_TYPE_SOCKS5:

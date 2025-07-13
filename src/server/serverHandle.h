@@ -7,7 +7,7 @@
 #define MAX_FDS 1023
 #define SERVER_LISTEN_SOCKET_COUNT 2
 #define FDS_PER_SOCKS_CONNECTION 2
-
+#define FDS_RESERVED_BY_OS 2
 
 int server_handler(char * socks_addr, char * socks_port, char * mng_addr,char * mng_port);
 
