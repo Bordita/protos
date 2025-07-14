@@ -222,11 +222,15 @@ static void passive_socket_handler(struct selector_key *key) {
             
             client_hotdogs * hotdogs_client = malloc(sizeof(client_hotdogs));
             if (hotdogs_client == NULL) {
-                perror("malloc error");
+                close(fd);
                 return;
             }
 
-            init_hotdogs_client(hotdogs_client, -1);
+            if(init_hotdogs_client(hotdogs_client, -1)) {
+                free(hotdogs_client);
+                close(fd);
+                return;
+            }
 
             // Accept hdp connection
             hotdogs_client->client_addr_len = sizeof(hotdogs_client->client_addr);

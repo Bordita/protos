@@ -368,10 +368,9 @@ void close_hotdogs_connection(struct selector_key *key) {
     free(client);
 }
 
-void init_hotdogs_client(client_hotdogs *client, int client_socket) {
+int init_hotdogs_client(client_hotdogs *client, int client_socket) {
     if (client == NULL) {
-        fprintf(stderr, "Error: client is NULL\n");
-        return;
+        return -1;
     }
 
     memset(client, 0, sizeof(client_hotdogs));
@@ -381,7 +380,16 @@ void init_hotdogs_client(client_hotdogs *client, int client_socket) {
     
     // Initialize buffers
     client->raw_buffer_a = malloc(MAX_HOTDOGS_BUFFER_SIZE);
+    if (client->raw_buffer_a == NULL) {
+        return -1;
+    }
+
     client->raw_buffer_b = malloc(MAX_HOTDOGS_BUFFER_SIZE);
+    if (client->raw_buffer_b == NULL) {
+        free(client->raw_buffer_a);
+        client->raw_buffer_a = NULL;
+        return -1;
+    }
     
     buffer_init(&client->read_buffer, MAX_HOTDOGS_BUFFER_SIZE, client->raw_buffer_a);
     buffer_init(&client->write_buffer, MAX_HOTDOGS_BUFFER_SIZE, client->raw_buffer_b);
@@ -395,6 +403,8 @@ void init_hotdogs_client(client_hotdogs *client, int client_socket) {
     client->request_parser.current_parse_state = HOTDOGS_PARSE_METHOD;
     
     stm_init(&client->stm);
+
+    return 0;
 }
 
 
