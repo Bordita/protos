@@ -519,11 +519,15 @@ static void relay_data_init(unsigned state, struct selector_key * key) {
     // Inicializar buffers de relay si no están inicializados
     if (client->raw_buffer_client_to_dest == NULL) {
         client->raw_buffer_client_to_dest = malloc(buffer_size);
-        buffer_init(&client->client_to_dest_buffer, buffer_size, client->raw_buffer_client_to_dest);
+        if (client->raw_buffer_client_to_dest != NULL) {
+            buffer_init(&client->client_to_dest_buffer, buffer_size, client->raw_buffer_client_to_dest);
+        }
     }
     if (client->raw_buffer_dest_to_client == NULL) {
         client->raw_buffer_dest_to_client = malloc(buffer_size);
-        buffer_init(&client->dest_to_client_buffer, buffer_size, client->raw_buffer_dest_to_client);
+        if (client->raw_buffer_dest_to_client != NULL) {
+            buffer_init(&client->dest_to_client_buffer, buffer_size, client->raw_buffer_dest_to_client);
+        }
     }
 }   
 
@@ -539,11 +543,19 @@ static socks5_states relay_data_read(struct selector_key * key) {
     // Determinar de dónde viene el evento
     if (key->fd == client->client_socket) {
         // Leer del cliente y guardar en el buffer hacia el destino
+        if (client->raw_buffer_client_to_dest == NULL) {
+            fprintf(stderr, "relay_data_read: raw_buffer_client_to_dest is NULL\n");
+            return ERROR;
+        }
         fd = client->client_socket;
         target_buffer = &client->client_to_dest_buffer;
         log_transferred_bytes = false;
     } else if (key->fd == client->destination_socket) {
         // Leer del destino y guardar en el buffer hacia el cliente
+        if (client->raw_buffer_dest_to_client == NULL) {
+            fprintf(stderr, "relay_data_read: raw_buffer_dest_to_client is NULL\n");
+            return ERROR;
+        }
         fd = client->destination_socket;
         target_buffer = &client->dest_to_client_buffer;
         log_transferred_bytes = true;
@@ -629,11 +641,19 @@ static socks5_states relay_data_write(struct selector_key * key) {
     // Determinar a dónde va el evento
     if (key->fd == client->destination_socket) {
         // Escribir al destino desde el buffer
+        if (client->raw_buffer_client_to_dest == NULL) {
+            fprintf(stderr, "relay_data_write: raw_buffer_client_to_dest is NULL\n");
+            return ERROR;
+        }
         fd = client->destination_socket;
         source_buffer = &client->client_to_dest_buffer;
         log_transferred_bytes = true;
     } else if (key->fd == client->client_socket) {
         // Escribir al cliente desde el buffer
+        if (client->raw_buffer_dest_to_client == NULL) {
+            fprintf(stderr, "relay_data_write: raw_buffer_dest_to_client is NULL\n");
+            return ERROR;
+        }
         fd = client->client_socket;
         source_buffer = &client->dest_to_client_buffer;
         log_transferred_bytes = false;
