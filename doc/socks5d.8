@@ -1,0 +1,94 @@
+.\" Macros
+.ds PX \s-1POSIX\s+1
+.de EXAMPLE .\" Example formatting
+.RS 10
+.BR "\\$1"
+.RE
+..
+
+.TH socks5d 0.0.0 "June 10, 2025"
+.LO 8
+.SH NAME
+socks5d \- SOCKS version 5 proxy with enhancements
+
+.SH SYNOPSIS
+.HP 10
+.B  socks5d
+[ POSIX style options ]
+
+.SH OPTIONS
+
+.\".IP "\fB\-d\fB"
+.\"Sets to run with default configuration.
+.\".IP
+.\"Servers with persistent configuration (not required by the statement)
+.\"are challenging to test since the current configuration must be known.
+.\".IP
+.\"In those cases, this option forgets all previous configuration and sets
+.\"the default configuration.
+.\".IP
+.\"The default configuration has transformations turned off.
+
+.IP "\fB-h\fR"
+Prints help and exits.
+
+.IP "\fB\-l\fB \fIsocks-address\fR"
+Sets the address where the SOCKS proxy will serve.
+By default, it listens on all interfaces.
+
+.IP "\fB\-N\fB"
+Disables password dissectors.
+
+.IP "\fB\-L\fB \fImanagement-address\fR"
+Sets the address where the management service will serve.
+By default, it listens only on loopback.
+
+.IP "\fB\-p\fB \fIlocal-port\fR"
+TCP port for incoming SOCKS connections.
+Default value is \fI1080\fR.
+
+.IP "\fB\-P\fB \fIconf-port\fR"
+Port for incoming configuration protocol connections.
+Default value is \fI8080\fR.
+
+.IP "\fB\-u\fB \fIuser:pass\fR"
+Declares a proxy user with password. Can be used up to 10 times.
+
+.IP "\fB\-v\fB"
+Prints version information and exits.
+
+.SH ACCESS LOG
+
+Logs proxy usage to standard output. One connection per line. Fields in a line are tab-separated:
+
+.IP "\fBdate\fR"
+Connection processed date in ISO-8601 format.
+Example 2025-06-10T19:56:34Z.
+
+.IP "\fBusername\fR"
+Requesting user.
+Example pepe.
+
+.IP "\fBrecord type\fR"
+Always the character A.
+
+.IP "\fBsource IP address\fR"
+Where the user connected from.
+Example ::1.
+
+.IP "\fBsource port\fR"
+Where the user connected from.
+Example 54786.
+
+.IP "\fBdestination\fR"
+Where we connected to. Name or IP address (according to ATY).
+Example www.itba.edu.ar.
+Example ::1.
+
+.IP "\fBdestination port\fR"
+Where we connected to.
+Example 443.
+
+.IP "\fBstatus\fR"
+SOCKS status (0 success, ...)
+SOCKSv5 status code. Example 0.
