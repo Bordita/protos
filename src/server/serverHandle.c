@@ -57,6 +57,8 @@ void close_connection(client_socks5 * client) {
 
     if (client->parser != NULL) {
         parser_destroy(client->parser);
+        client->resolved_addr = NULL;
+        client->resolved_addr_current = NULL;
     }
     
     buffer_reset(&client->read_buffer);
