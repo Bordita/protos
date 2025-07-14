@@ -4,7 +4,7 @@
 #include "../shared/includes/auth.h"
 #include "../shared/includes/logger.h"
 #include "../shared/includes/parser.h"
-#include "./socks5.h"
+#include "./includes/socks5.h"
 
 #include <stdlib.h>
 #include <string.h>

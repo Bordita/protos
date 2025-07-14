@@ -1,10 +1,10 @@
 #include <string.h>
-#include "authentication.h"
+#include "./includes/authentication.h"
 #include "../shared/includes/parser.h"
 #include "../shared/includes/selector.h"
 #include "../shared/includes/buffer.h"
 #include "../shared/includes/auth.h"
-#include "socks5.h"
+#include "includes/socks5.h"
 #include "stdbool.h"
 bool keep_feeding_parser = true;
 auth_event_type last_event = AUTH_EVENT_ERROR;

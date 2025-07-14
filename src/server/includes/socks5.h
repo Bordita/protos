@@ -4,12 +4,12 @@
 #include <netdb.h>
 #include <stdint.h>
 #include <sys/socket.h>
-#include "../shared/includes/buffer.h"
-#include "../shared/includes/parser.h"
-#include "../shared/includes/stm.h"
-#include "../shared/includes/selector.h"
+#include "../../shared/includes/buffer.h"
+#include "../../shared/includes/parser.h"
+#include "../../shared/includes/stm.h"
+#include "../../shared/includes/selector.h"
 #include <stdbool.h>
-#define MAX_SOCKS5_BUFFER_SIZE 65536
+#define MAX_SOCKS5_BUFFER_SIZE 16384
 
 static const uint8_t SOCKS_VERSION = 0x05;
 

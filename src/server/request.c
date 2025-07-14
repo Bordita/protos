@@ -1,10 +1,10 @@
 #include <string.h>
 #include <arpa/inet.h>
-#include "request.h"
+#include "includes/request.h"
 #include "../shared/includes/parser.h"
 #include "../shared/includes/selector.h"
 #include "../shared/includes/buffer.h"
-#include "socks5.h"
+#include "includes/socks5.h"
 
 
 // Actions for the request parser 
