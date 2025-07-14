@@ -28,7 +28,7 @@ void log_socks5_client_access(client_socks5 * client) {
     char destination_ipstr[INET6_ADDRSTRLEN];
     int client_port;
     int destination_port;
-
+    char * destination_ipstr_ptr;
     if (client->client_addr.ss_family == AF_INET) {
         struct sockaddr_in *s = (struct sockaddr_in *)&client->client_addr;
         inet_ntop(AF_INET, &s->sin_addr, client_ipstr, sizeof(client_ipstr));
@@ -48,11 +48,19 @@ void log_socks5_client_access(client_socks5 * client) {
         inet_ntop(AF_INET6, &s->sin6_addr, destination_ipstr, sizeof(destination_ipstr));
         destination_port = ntohs(s->sin6_port);
     }
+
+    if (client->request_info.atyp == ATYP_DOMAINNAME) {
+        destination_ipstr_ptr = client->request_info.dest_addr;
+    } else {
+        destination_ipstr_ptr = destination_ipstr;
+    }
+
+    
     char * username = "anonymous";
     if(client->auth_info.authenticated) {
         username = client->auth_info.username;
     }
-    log_access(username, client_ipstr, client_port, destination_ipstr, destination_port, client->reply_code);
+    log_access(username, client_ipstr, client_port, destination_ipstr_ptr, destination_port, client->reply_code);
 }
 
 socks5_reply errno_to_socks5_reply(int err) {
