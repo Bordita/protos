@@ -92,11 +92,10 @@ static void usage(const char* progname) {
             "   -u <user:pass>    Username and password for SOCKS5 authentication.\n"
             "   -v                Prints version information and exits.\n"
             "\n"
-            "Examples:\n"
+            "Example:\n"
             "   %s -d google.com -P 80 -n 10\n"
-            "   %s -o 192.168.1.100 -p 8080 -u user:pass -d httpbin.org -P 80 -n 5\n"
             "\n",
-            progname, progname, progname);
+            progname, progname);
     exit(1);
 }
 
