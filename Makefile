@@ -22,6 +22,8 @@ CONCURRENCE_TEST_OUTPUT=$(OUTPUT_FOLDER)/concurrenceTest
 SERVER_DEBUG_OUTPUT_FILE=$(OUTPUT_FOLDER)/socks5dbg
 CLIENT_DEBUG_OUTPUT_FILE=$(OUTPUT_FOLDER)/clientdbg
 
+LOG_FILE=access.log
+
 all: server client concurrence_test
 
 debug: server_debug client_debug concurrence_test
@@ -56,6 +58,7 @@ $(CLIENT_DEBUG_OUTPUT_FILE): $(CLIENT_OBJECTS) $(SHARED_OBJECTS) $(ARGS_OBJECTS)
 clean:
 	rm -rf $(OUTPUT_FOLDER)
 	rm -rf $(OBJECTS_FOLDER)
+	rm -f $(LOG_FILE)
 
 obj/%.o: src/%.c
 	mkdir -p $(OBJECTS_FOLDER)/server
