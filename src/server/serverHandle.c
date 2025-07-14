@@ -22,10 +22,14 @@ typedef enum {
 
 static char * error_msg;
 static fd_selector selector;
+static char * socks_addr_def = LOCALHOST_ADDR_IPV4;
+static char * hot_dogs_addr_def = LOCALHOST_ADDR_IPV4;
 
 // Passive sockets file descriptors
 static int fd_socks = -1;
 static int fd_hot_dogs = -1;
+static int fd_socks_IPv6 = -1;
+static int fd_hot_dogs_IPv6 = -1;
 
 
 // Socks5 handlers
@@ -145,9 +149,9 @@ static void passive_socket_handler(struct selector_key *key) {
     int fd = key->fd;
     socket_type type = SOCKET_TYPE_UNKNOWN;
 
-    if (fd == fd_socks) {
+    if (fd == fd_socks || fd == fd_socks_IPv6) {
         type = SOCKET_TYPE_SOCKS5;
-    } else if (fd == fd_hot_dogs) {
+    } else if (fd == fd_hot_dogs || fd == fd_hot_dogs_IPv6) {
         type = SOCKET_TYPE_HOTDOGS;
     }
 
@@ -256,24 +260,14 @@ static int create_socket(char * addr, char * port,const struct fd_handler * sele
     struct addrinfo hint, *res = NULL;
     int ret, fd;
     bool error = false;
-    int ipv6_only = 0, reuse_addr = 1;
+    int ipv6_only = 1,reuse_addr = 1;
 
     memset(&hint, 0, sizeof(hint));
 
     hint.ai_family = family;
     hint.ai_flags = AI_NUMERICHOST | AI_NUMERICSERV | AI_PASSIVE;
-
-    char mapped_addr[INET6_ADDRSTRLEN];
-    const char *addr_to_use = NULL;
-    struct in_addr ipv4_addr;
-    if (inet_pton(AF_INET, addr, &ipv4_addr) == 1) {
-        snprintf(mapped_addr, sizeof(mapped_addr), "::ffff:%s", addr);
-        addr_to_use = mapped_addr;
-    } else {
-        addr_to_use = addr;
-    }
-
-    ret = getaddrinfo(addr_to_use, port, &hint, &res);
+    
+    ret = getaddrinfo(addr, port, &hint, &res);
     if (ret) {
         fprintf(stderr, "unable to get address info: %s", gai_strerror(ret));
         error = true;
@@ -299,9 +293,8 @@ static int create_socket(char * addr, char * port,const struct fd_handler * sele
         error = true;
         goto finally;
     }
-
-    if (setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY,&ipv6_only, sizeof(int)) == -1) {
-        error_msg = "unable to set socket to not ipv6_only";
+    if (res->ai_family == AF_INET6 && setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY,&ipv6_only, sizeof(int)) == -1) {
+        error_msg = "unable to set socket to ipv6_only";
         error = true;
         goto finally;
     }
@@ -359,14 +352,32 @@ int server_handler(char * socks_addr, char * socks_port, char * hot_dogs_addr,ch
         goto finally;
     }
 
-    if ((fd_socks = create_socket(socks_addr,socks_port,&passive_socket_fd_handler,AF_UNSPEC)) == -1){   
+    if(socks_addr == NULL){
+        fd_socks_IPv6 = create_socket(LOCALHOST_ADDR_IPV6, socks_port, &passive_socket_fd_handler, AF_INET6);
+        if (fd_socks_IPv6 == -1) {
+            goto finally;
+        }
+    } else {
+            socks_addr_def = socks_addr;
+    }
+    if(hot_dogs_addr == NULL){
+        fd_hot_dogs_IPv6 = create_socket(LOCALHOST_ADDR_IPV6, hot_dogs_port, &passive_socket_fd_handler, AF_INET6);
+        if (fd_hot_dogs_IPv6 == -1) {
+            goto finally;
+        }
+    } else {
+            hot_dogs_addr_def = hot_dogs_addr;
+    }
+
+    if ((fd_socks = create_socket(socks_addr_def,socks_port,&passive_socket_fd_handler,AF_UNSPEC)) == -1){   
         goto finally;
     }
 
-    if ((fd_hot_dogs = create_socket(hot_dogs_addr,hot_dogs_port,&passive_socket_fd_handler,AF_UNSPEC)) == -1){   
+    if ((fd_hot_dogs = create_socket(hot_dogs_addr_def,hot_dogs_port,&passive_socket_fd_handler,AF_UNSPEC)) == -1){   
         goto finally;
     }
 
+   
     while (1) {
         int selector_status = selector_select(selector);
         if (selector_status != SELECTOR_SUCCESS){
