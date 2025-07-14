@@ -22,7 +22,7 @@ CONCURRENCE_TEST_OUTPUT=$(OUTPUT_FOLDER)/concurrenceTest
 SERVER_DEBUG_OUTPUT_FILE=$(OUTPUT_FOLDER)/socks5dbg
 CLIENT_DEBUG_OUTPUT_FILE=$(OUTPUT_FOLDER)/clientdbg
 
-LOG_FILE=access.log
+LOG_FILE=*.log
 
 all: server client concurrence_test
 
