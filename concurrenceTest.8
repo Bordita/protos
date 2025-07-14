@@ -1,0 +1,100 @@
+.\" Macros
+.ds PX \s-1POSIX\s+1
+.de EXAMPLE .\" Format of the examples
+.RS 10
+.BR "\\$1"
+.RE
+..
+
+.TH concurrenceTest 0.0.0 "July 15, 2025"
+.LO 8
+.SH NAME
+concurrenceTest \- SOCKS5 proxy concurrency testing tool
+
+.SH SYNOPSIS
+.HP 10
+.B  concurrenceTest
+[ POSIX style options ]
+
+.SH DESCRIPTION
+concurrenceTest is a testing utility designed to evaluate the performance and stability of SOCKS5 proxy servers under concurrent load. It spawns multiple client processes that simultaneously connect through the proxy to a specified destination, allowing administrators to test proxy behavior under stress conditions.
+
+.SH OPTIONS
+
+.IP "\fB\-h\fB"
+Prints help and exits.
+
+.IP "\fB\-o\fB \fIproxy_addr\fR"
+Address of the SOCKS5 proxy server.
+Default value is \fI127.0.0.1\fR.
+
+.IP "\fB\-p\fB \fIproxy_port\fR"
+Port of the SOCKS5 proxy server.
+Default value is \fI1080\fR.
+
+.IP "\fB\-d\fB \fIdest_host\fR"
+Destination host to connect to through the proxy (required).
+This can be a hostname or IP address.
+
+.IP "\fB\-P\fB \fIdest_port\fR"
+Destination port to connect to (required).
+Must be a valid port number between 1 and 65535.
+
+.IP "\fB\-n\fB \fIn_clients\fR"
+Number of concurrent clients to spawn (required).
+Each client will establish a separate connection through the proxy.
+
+.IP "\fB\-u\fB \fIuser:pass\fR"
+Username and password for SOCKS5 authentication.
+Use this option when the proxy requires authentication.
+
+.IP "\fB\-v\fB"
+Prints version information and exits.
+
+.SH EXAMPLE
+
+.EXAMPLE "./bin/concurrenceTest -d google.com -P 80 -n 10"
+Test with 10 concurrent clients connecting to Google on port 80 through the default local proxy.
+
+.SH BEHAVIOR
+
+The tool creates the specified number of child processes, each establishing an independent connection through the SOCKS5 proxy to the destination. Each client performs the following sequence:
+
+1. Connects to the SOCKS5 proxy 
+
+2. Performs SOCKS5 handshake (with authentication if specified)
+
+3. Requests connection to the destination through the proxy
+
+4. Sends a simple HTTP request to the destination
+
+5. Maintains the connection until terminated
+
+The test continues until manually terminated with SIGINT (Ctrl+C) or SIGTERM.
+
+.SH SIGNALS
+
+.IP "\fBSIGINT, SIGTERM\fR"
+Gracefully terminates all client processes and exits.
+
+.IP "\fBSIGUSR1\fR"
+Sent to child processes to request graceful shutdown.
+
+.SH EXIT STATUS
+
+.IP "\fB0\fR"
+Successful execution or graceful termination.
+
+.IP "\fB1\fR"
+Error in argument parsing, connection failure, or other runtime error.
+
+.SH NOTES
+
+This tool is designed for testing purposes and should be used responsibly. When testing against external destinations, ensure you have permission to generate the intended traffic load.
+
+The tool supports both IPv4 and IPv6 destinations.
+
+.SH SEE ALSO
+.BR socks5d (8),
+.BR client (8)
+

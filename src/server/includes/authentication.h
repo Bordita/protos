@@ -2,9 +2,9 @@
 #define __authentication_socks_h
 
 #include <stdint.h>
-#include "../shared/includes/parser.h"
-#include "../shared/includes/buffer.h"
-#include "../shared/includes/selector.h"
+#include "../../shared/includes/parser.h"
+#include "../../shared/includes/buffer.h"
+#include "../../shared/includes/selector.h"
 #include "socks5.h"
 
 static const uint8_t AUTHENTICATION_VERSION = 0x01;

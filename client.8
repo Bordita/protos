@@ -1,0 +1,86 @@
+.\" Macros
+.ds PX \s-1POSIX\s+1
+.de EXAMPLE .\" Format of the examples
+.RS 10
+.BR "\\$1"
+.RE
+..
+
+.TH client 0.0.0 "July 15, 2025"
+.LO 8
+.SH NAME
+client \- client application for socks5d configuration and monitoring
+
+.SH SYNOPSIS
+.HP 10
+.B  client
+[ POSIX style options ]
+
+.SH OPTIONS
+
+.IP "\fB\-u\fB \fIuser:pass\fR"
+Authenticates with username and password (required).
+
+.IP "\fB\-ip\fB \fIaddress\fR"
+Provides the server IP address. 
+Default value is \fI127.0.0.1\fR.
+
+.IP "\fB\-port\fB \fIport\fR"
+Provides the server port.
+Default value is \fI8080\fR.
+
+.IP "\fB\-m\fB"
+Gets server metrics.
+
+.IP "\fB\-lu\fB"
+Lists configured users.
+
+.IP "\fB\-ll\fB"
+Lists server logs.
+
+.IP "\fB\-b\fB \fIsize\fR"
+Sets buffer size.
+
+.IP "\fB\-add\fB \fIuser:pass\fR"
+Adds a user with password. Maximum of 10 users.
+
+.IP "\fB\-rm\fB \fIuser\fR"
+Removes user with username 'user'.
+
+.IP "\fB\-h\fB"
+Shows this help message and terminates the connection.
+
+.SH ACCESS LOG
+
+Records proxy usage to standard output. One connection per line. Line fields separated by tabs:
+
+.IP "\fBdate\fR" 
+when the connection was processed in ISO-8601 format.
+Example 2025-06-10T19:56:34Z.
+
+.IP "\fBusername\fR" 
+who makes the request.
+Example pepe.
+
+.IP "\fBlog type\fR" 
+Always the character A.
+
+.IP "\fBsource IP address\fR" 
+from where the user connected.
+Example ::1.
+
+.IP "\fBsource port\fR" 
+from where the user connected.
+Example 54786.
+
+.IP "\fBdestination\fR"
+where we connect to. name or IP address (according to ATYP).
+Example www.itba.edu.ar.
+Example ::1.
+
+.IP "\fBdestination port\fR" where we connect to.
+Example 443.
+
+.IP "\fBstatus\fR" SOCKS status (0 success, ...)
+SOCKSv5 status code. Example 0.
+

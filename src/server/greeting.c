@@ -1,10 +1,10 @@
 
 #include <string.h>
-#include "greeting.h"
+#include "includes/greeting.h"
 #include "../shared/includes/parser.h"
 #include "../shared/includes/selector.h"
 #include "../shared/includes/buffer.h"
-#include "socks5.h"
+#include "includes/socks5.h"
 #include "../shared/includes/auth.h"
 // Actions for the greeting parser 
 static void act_version(struct parser_event *ret, const uint8_t c) {
