@@ -52,7 +52,7 @@ void log_socks5_client_access(client_socks5 * client) {
     if(client->auth_info.authenticated) {
         username = client->auth_info.username;
     }
-    log_access(username, client_ipstr, client_port, destination_ipstr, destination_port);
+    log_access(username, client_ipstr, client_port, destination_ipstr, destination_port, client->reply_code);
 }
 
 socks5_reply errno_to_socks5_reply(int err) {
@@ -272,6 +272,7 @@ static socks5_states request_read(struct selector_key * key) {
         case REQUEST_EVENT_DONE:
             if (client->request_info.cmd != CMD_CONNECT) {
                 generate_request_response(&client->write_buffer, REP_COMMAND_NOT_SUPPORTED, ATYP_IPV4, "0.0.0.0", 0);
+                client->reply_code = REP_COMMAND_NOT_SUPPORTED;
                 if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
                     return ERROR;
                 }
@@ -289,6 +290,7 @@ static socks5_states request_read(struct selector_key * key) {
                     
                     if (inet_pton(AF_INET, client->request_info.dest_addr, &addr->sin_addr) <= 0) {
                         generate_request_response(&client->write_buffer, REP_GENERAL_FAILURE,ATYP_IPV4, "0.0.0.0", 0);
+                        client->reply_code = REP_GENERAL_FAILURE;
                         if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
                             return ERROR;
                         }
@@ -313,6 +315,7 @@ static socks5_states request_read(struct selector_key * key) {
                     
                     if (inet_pton(AF_INET6, client->request_info.dest_addr, &addr->sin6_addr) <= 0) {
                         generate_request_response(&client->write_buffer, REP_GENERAL_FAILURE,ATYP_IPV4, "0.0.0.0", 0);
+                        client->reply_code = REP_GENERAL_FAILURE;
                         if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
                             return ERROR;
                         }
@@ -330,6 +333,7 @@ static socks5_states request_read(struct selector_key * key) {
                     struct selector_key * k = malloc(sizeof(*key));
                     if (k == NULL) {
                         generate_request_response(&client->write_buffer, REP_GENERAL_FAILURE,ATYP_IPV4, "0.0.0.0", 0);
+                        client->reply_code = REP_GENERAL_FAILURE;
                         if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
                             return ERROR;
                         }
@@ -340,6 +344,7 @@ static socks5_states request_read(struct selector_key * key) {
                     if (pthread_create(&thread, NULL, &request_resolv_thread, k) != 0) {
                         free(k);
                         generate_request_response(&client->write_buffer, REP_GENERAL_FAILURE, ATYP_IPV4, "0.0.0.0", 0);
+                        client->reply_code = REP_GENERAL_FAILURE;
                         if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
                             return ERROR;
                         }
@@ -354,6 +359,7 @@ static socks5_states request_read(struct selector_key * key) {
                 
                 default:
                     generate_request_response(&client->write_buffer, REP_ADDRESS_TYPE_NOT_SUPPORTED,ATYP_IPV4, "0.0.0.0", 0);
+                    client->reply_code = REP_ADDRESS_TYPE_NOT_SUPPORTED;
                     if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
                         return ERROR;
                     }
@@ -362,6 +368,7 @@ static socks5_states request_read(struct selector_key * key) {
             
         case REQUEST_EVENT_VERSION_ERROR:
             generate_request_response(&client->write_buffer, REP_GENERAL_FAILURE,ATYP_IPV4, "0.0.0.0", 0);
+            client->reply_code = REP_GENERAL_FAILURE;
             if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
                 return ERROR;
             }
@@ -369,6 +376,7 @@ static socks5_states request_read(struct selector_key * key) {
             
         case REQUEST_EVENT_CMD_ERROR:
             generate_request_response(&client->write_buffer, REP_COMMAND_NOT_SUPPORTED,ATYP_IPV4, "0.0.0.0", 0);
+            client->reply_code = REP_COMMAND_NOT_SUPPORTED;
             if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
                 return ERROR;
             }
@@ -376,6 +384,7 @@ static socks5_states request_read(struct selector_key * key) {
             
         case REQUEST_EVENT_ATYP_ERROR:
             generate_request_response(&client->write_buffer, REP_ADDRESS_TYPE_NOT_SUPPORTED,ATYP_IPV4, "0.0.0.0", 0);
+            client->reply_code = REP_ADDRESS_TYPE_NOT_SUPPORTED;
             if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
                 return ERROR;
             }
@@ -383,6 +392,7 @@ static socks5_states request_read(struct selector_key * key) {
             
         case REQUEST_EVENT_ERROR:
             generate_request_response(&client->write_buffer, REP_GENERAL_FAILURE,ATYP_IPV4, "0.0.0.0", 0);
+            client->reply_code = REP_GENERAL_FAILURE;
             if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
                 return ERROR;
             }
@@ -399,7 +409,8 @@ static socks5_states request_resolv(struct selector_key * key) {
     client_socks5 * client = (client_socks5 *)key->data;
     
     if (client->resolved_addr == NULL) {
-        generate_request_response(&client->write_buffer, REP_HOST_UNREACHABLE,ATYP_IPV4, "0.0.0.0", 0);      
+        generate_request_response(&client->write_buffer, REP_HOST_UNREACHABLE,ATYP_IPV4, "0.0.0.0", 0);    
+        client->reply_code = REP_HOST_UNREACHABLE;  
         if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {
             return ERROR;
         }
@@ -444,6 +455,8 @@ static socks5_states request_connect(struct selector_key * key) {
         SELECTOR_SUCCESS != selector_set_interest(key->s, client->client_socket, OP_WRITE) || 
         generate_request_response(&client->write_buffer, REP_SUCCEEDED, client->request_info.atyp, client->request_info.dest_addr, client->request_info.dest_port) == -1) {
         return ERROR;
+    } else {
+        client->reply_code = REP_SUCCEEDED;
     }
     return REQUEST_WRITE;
 }
@@ -461,6 +474,7 @@ static socks5_states request_write_error(struct selector_key * key) {
 
     if (!buffer_can_read(&client->write_buffer)) {
         if (SELECTOR_SUCCESS == selector_set_interest_key(key, OP_READ)) {
+            log_socks5_client_access(client);
             return REQUEST_READ;
         }
         return ERROR;
@@ -679,8 +693,12 @@ static socks5_states try_next_address(struct selector_key * key) {
     }
 
     // If we reach here, it means all addresses have been tried and failed and errno was set by the last connect attempt.
-    if (generate_request_response(&client->write_buffer, errno_to_socks5_reply(errno), ATYP_IPV4, "0.0.0.0", 0) == -1) {
+    socks5_reply reply_code = errno_to_socks5_reply(errno);
+
+    if (generate_request_response(&client->write_buffer, reply_code, ATYP_IPV4, "0.0.0.0", 0) == -1) {
         return ERROR;
+    } else {
+        client->reply_code = reply_code;
     }
     
     if (selector_set_interest_key(key, OP_WRITE) != SELECTOR_SUCCESS) {

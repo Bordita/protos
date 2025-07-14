@@ -9,7 +9,7 @@
 
 void log_init(void);
 
-void log_access(const char *username, const char *client_ip, uint16_t client_port, const char *dest_addr, uint16_t dest_port);
+void log_access(const char *username, const char *client_ip, uint16_t client_port, const char *dest_addr, uint16_t dest_port, uint8_t status_code);
 
 void clean_logs(void);
 

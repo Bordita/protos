@@ -36,18 +36,7 @@ typedef enum {
 } request_state;
 
 
-// Reply Codes
-typedef enum {
-    REP_SUCCEEDED = 0x00,
-    REP_GENERAL_FAILURE = 0x01,
-    REP_CONNECTION_NOT_ALLOWED = 0x02,
-    REP_NETWORK_UNREACHABLE = 0x03,
-    REP_HOST_UNREACHABLE = 0x04,
-    REP_CONNECTION_REFUSED = 0x05,
-    REP_TTL_EXPIRED = 0x06,
-    REP_COMMAND_NOT_SUPPORTED = 0x07,
-    REP_ADDRESS_TYPE_NOT_SUPPORTED = 0x08
-} socks5_reply;
+
 
 
 request_event_type request_parser_read(client_socks5 * client, struct buffer *buffer);

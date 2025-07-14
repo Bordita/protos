@@ -35,6 +35,19 @@ typedef enum {
     METHOD_NO_ACCEPTABLE_METHODS = 0xFF,
 } authentication_method;
 
+// Reply Codes
+typedef enum {
+    REP_SUCCEEDED = 0x00,
+    REP_GENERAL_FAILURE = 0x01,
+    REP_CONNECTION_NOT_ALLOWED = 0x02,
+    REP_NETWORK_UNREACHABLE = 0x03,
+    REP_HOST_UNREACHABLE = 0x04,
+    REP_CONNECTION_REFUSED = 0x05,
+    REP_TTL_EXPIRED = 0x06,
+    REP_COMMAND_NOT_SUPPORTED = 0x07,
+    REP_ADDRESS_TYPE_NOT_SUPPORTED = 0x08
+} socks5_reply;
+
 
 // State machine states for SOCKS5
 typedef enum {
@@ -145,6 +158,8 @@ typedef struct client_socks5 {
     } parsing_state;
     
     bool dont_close;
+
+    socks5_reply reply_code;
 
     authentication_method selected_method;
 
