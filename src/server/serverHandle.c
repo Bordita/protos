@@ -396,6 +396,10 @@ finally:
         close(fd_socks);
     if (fd_hot_dogs != -1)
         close(fd_hot_dogs);
+    if (fd_socks_IPv6 != -1)
+        close(fd_socks_IPv6);
+    if (fd_hot_dogs_IPv6 != -1)
+        close(fd_hot_dogs_IPv6);
     return ret_code;
 }
 
