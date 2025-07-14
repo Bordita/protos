@@ -151,11 +151,13 @@ static socks5_states greeting_read(struct selector_key * key) {
     }
 
     greeting_event_type event = parser_read(client, &client->read_buffer);
-     if (event == GREETING_EVENT_DONE) {
+    if (event == GREETING_EVENT_DONE) {
         if (SELECTOR_SUCCESS != selector_set_interest_key(key, OP_WRITE) || generate_connection_response(&client->write_buffer,client->selected_method) == -1) {
             return ERROR;
         }
         return GREETING_WRITE;
+    } else if(event == GREETING_EVENT_VERSION_ERROR){
+        return ERROR;
     }
     return GREETING_READ;
 }
