@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>   
 #include <signal.h>  
+#include <arpa/inet.h>
 #include "../shared/includes/stm.h"
 #include "../shared/includes/buffer.h"
 #include "../shared/includes/parser.h"
@@ -255,14 +256,24 @@ static int create_socket(char * addr, char * port,const struct fd_handler * sele
     struct addrinfo hint, *res = NULL;
     int ret, fd;
     bool error = false;
-    int ipv6_only = 1, reuse_addr = 1;
+    int ipv6_only = 0, reuse_addr = 1;
 
     memset(&hint, 0, sizeof(hint));
 
     hint.ai_family = family;
     hint.ai_flags = AI_NUMERICHOST | AI_NUMERICSERV | AI_PASSIVE;
 
-    ret = getaddrinfo(addr, port, &hint, &res);
+    char mapped_addr[INET6_ADDRSTRLEN];
+    const char *addr_to_use = NULL;
+    struct in_addr ipv4_addr;
+    if (inet_pton(AF_INET, addr, &ipv4_addr) == 1) {
+        snprintf(mapped_addr, sizeof(mapped_addr), "::ffff:%s", addr);
+        addr_to_use = mapped_addr;
+    } else {
+        addr_to_use = addr;
+    }
+
+    ret = getaddrinfo(addr_to_use, port, &hint, &res);
     if (ret) {
         fprintf(stderr, "unable to get address info: %s", gai_strerror(ret));
         error = true;
@@ -289,8 +300,8 @@ static int create_socket(char * addr, char * port,const struct fd_handler * sele
         goto finally;
     }
 
-    if (family == AF_INET6 && setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY,&ipv6_only, sizeof(int)) == -1) {
-        error_msg = "unable to set socket to ipv6_only";
+    if (setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY,&ipv6_only, sizeof(int)) == -1) {
+        error_msg = "unable to set socket to not ipv6_only";
         error = true;
         goto finally;
     }
