@@ -226,22 +226,6 @@ curl -x socks5://newuser:newpass@localhost:1080 http://httpbin.org/ip
 ./bin/client -u admin:admin123 -ll
 ```
 
-### Testing de Diferentes Códigos de Error
-
-```bash
-# Error 0: Conexión exitosa
-curl -x socks5://user:userpass@localhost:1080 http://httpbin.org/ip
-
-# Error 4: Host inexistente  
-curl -x socks5://user:userpass@localhost:1080 http://invalid.nonexistent.domain.com
-
-# Error 5: Puerto cerrado
-curl -x socks5://user:userpass@localhost:1080 http://google.com:9999
-
-# Error 3: Red inaccesible
-curl -x socks5://user:userpass@localhost:1080 http://10.254.254.254:80
-```
-
 ---
 
 **Autores**
