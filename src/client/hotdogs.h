@@ -2,6 +2,7 @@
 #define __hotdogs_h_
 
 #include "../shared/includes/HotDogsProtocolTypes.h"
+#include <unistd.h>
 
 #define SUCCESS_CONNECTING 0
 #define UNSUCCESSFUL_CONNECTION 1
@@ -19,7 +20,6 @@ typedef enum {
 typedef struct Action{
     ActionType type;
     union {
-        struct { int value; } timeout;
         struct { int value; } buffer;
         struct { char *user; char *pass; } add_user;
         struct { char *user; } remove_user;
