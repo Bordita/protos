@@ -71,6 +71,7 @@ typedef struct {
     char username[256];
     char password[256];
     bool authenticated; 
+    bool authentication_fail;
 } credentials;
 
 
