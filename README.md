@@ -30,31 +30,15 @@ protos/
 ├── Makefile                      # Archivo de construcción principal
 ├── Makefile.inc                  # Configuraciones de compilación
 ├── doc/                          # Documentación
+│   ├── Informe-TPE-G9.pdf        # Informe del trabajo práctico
 │   ├── client.8                  # Manual del cliente
 │   ├── socks5d.8                 # Manual del servidor
+│   ├── concurrenceTest.8         # Manual del test de concurrencia
 │   └── HotDogsProtocol.txt       # Especificación del protocolo HotDogs
 ├── src/                          # Código fuente
 │   ├── server/                   # Servidor SOCKSv5
-│   │   ├── main.c                # Punto de entrada del servidor
-│   │   ├── socks5.c              # Implementación SOCKSv5
-│   │   ├── hotdogs.c             # Protocolo de administración
-│   │   ├── authentication.c     # Manejo de autenticación
-│   │   ├── greeting.c            # Handshake inicial SOCKS
-│   │   ├── request.c             # Procesamiento de requests SOCKS
-│   │   ├── serverHandle.c        # Manejo de conexiones
-│   │   └── includes/             # Headers del servidor
 │   ├── client/                   # Cliente de administración
-│   │   ├── client.c              # Cliente HotDogs
-│   │   └── hotdogs.c             # Cliente del protocolo
 │   ├── shared/                   # Código compartido
-│   │   ├── auth.c                # Sistema de autenticación
-│   │   ├── buffer.c              # Manejo de buffers
-│   │   ├── logger.c              # Sistema de logging
-│   │   ├── metrics.c             # Recolección de métricas
-│   │   ├── netutils.c            # Utilidades de red
-│   │   ├── parser.c              # Parser genérico
-│   │   ├── selector.c            # Multiplexor I/O
-│   │   └── stm.c                 # Máquina de estados
 │   ├── args/                     # Procesamiento de argumentos
 │   └── test/                     # Herramientas de testing
 └── bin/                          # Ejecutables generados (después de make)
@@ -64,7 +48,7 @@ protos/
 
 ### Requerimientos
 - **Compilador**: GCC con soporte C11
-- **Sistema Operativo**: Linux/Unix/macOS
+- **Sistema Operativo**: Linux/Unix
 
 ### Comandos de Construcción
 
