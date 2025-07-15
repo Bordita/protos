@@ -80,7 +80,7 @@ static void connection_read(struct selector_key *key) {
     if (state == ERROR || state == DONE || state == BAD_CREDENTIALS) {
         close_connection(client);
     }
-    if(state == ERROR) {
+    if(state == ERROR && !client->auth_info.authentication_fail) {
         add_failed_connection();
     }
 }
@@ -92,7 +92,7 @@ static void connection_write(struct selector_key *key) {
     if (state == ERROR || state == DONE || state == BAD_CREDENTIALS) {
         close_connection(client);
     }
-    if(state == ERROR) {
+    if(state == ERROR && !client->auth_info.authentication_fail) {
         add_failed_connection();
     }
 }
@@ -104,7 +104,7 @@ static void connection_block(struct selector_key *key) {
     if (state == ERROR || state == DONE || state == BAD_CREDENTIALS) {
         close_connection(client);
     }
-    if(state == ERROR) {
+    if(state == ERROR && !client->auth_info.authentication_fail) {
         add_failed_connection();
     }
 }
@@ -179,6 +179,7 @@ static void passive_socket_handler(struct selector_key *key) {
 
             // Struct initialization
             memset(client, 0x00, sizeof(*client));
+            client->auth_info.authentication_fail=false;
             client->raw_buffer_a = malloc(buffer_size);
             client->raw_buffer_b = malloc(buffer_size);
             buffer_init(&client->read_buffer, buffer_size, client->raw_buffer_a);

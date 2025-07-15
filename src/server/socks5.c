@@ -23,7 +23,6 @@ static socks5_states try_next_address(struct selector_key * key);
 uint32_t buffer_size = MAX_SOCKS5_BUFFER_SIZE; 
 
 void log_socks5_client_access(client_socks5 * client) {
-    // Obtener IP y puerto del cliente
     char client_ipstr[INET6_ADDRSTRLEN];
     char destination_ipstr[INET6_ADDRSTRLEN];
     int client_port;
@@ -216,6 +215,7 @@ static socks5_states authentication_read(struct selector_key * key) {
     if (event == AUTH_EVENT_DONE) {
         if (authenticate_credentials(client->auth_info) != AUTH_STATUS_SUCCESS) {
             client->auth_info.authenticated = false;
+            client->auth_info.authentication_fail = true;
             if(generate_auth_response(&client->write_buffer, AUTH_STATUS_FAILURE) != 0) {
                 return ERROR;
             }
@@ -252,7 +252,7 @@ static socks5_states authentication_write(struct selector_key * key) {
     }
     if (!buffer_can_read(&client->write_buffer)) {
         if (SELECTOR_SUCCESS != selector_set_interest_key(key, OP_READ) || client->auth_info.authenticated == false) {
-             return ERROR;        
+            return ERROR;        
         }
         return REQUEST_READ;
     }
@@ -574,19 +574,16 @@ static socks5_states relay_data_read(struct selector_key * key) {
         if (log_transferred_bytes) {
             add_transfered_bytes(n);
         }
-        // Habilitar escritura en el otro socket
         int other_fd = (fd == client->client_socket) ? client->destination_socket : client->client_socket;
         count = 0;
         uint8_t * read_ptr = buffer_read_ptr(target_buffer, &count);
         int written = send(other_fd,read_ptr,count, MSG_NOSIGNAL);
 
         if(written > 0) { 
-            // Se pudo escribir en destino, avanzar el puntero de lectura del buffer
             buffer_read_adv(target_buffer,written);
             if (!log_transferred_bytes) {
                 add_transfered_bytes(written);
             }
-            // No se pudo escribir todo lo leido del origen al destino, habilitar OP_WRITE en el otro socket
             if(written < count){
                 if(selector_set_interest(key->s, other_fd, OP_WRITE) != SELECTOR_SUCCESS) {
                     fprintf(stderr, "relay_data_read: error habilitando OP_WRITE en fd %d\n", other_fd);
@@ -595,7 +592,6 @@ static socks5_states relay_data_read(struct selector_key * key) {
             }
             return RELAY_DATA;
         } else if (written == -1) { 
-             // El socket no está listo para escribir, esperar próximo evento
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 if (selector_set_interest(key->s, other_fd, OP_WRITE) != SELECTOR_SUCCESS) {
                     fprintf(stderr, "relay_data_read: error habilitando OP_WRITE en fd %d\n", other_fd);
@@ -613,15 +609,11 @@ static socks5_states relay_data_read(struct selector_key * key) {
     } else if (n == 0) {
         return DONE;
     } else {
-        // Error en recv
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            // El socket no está listo para leer, esperar próximo evento
             return RELAY_DATA;
         } else if (errno == EINTR) {
-            // Interrumpido por señal, intentar de nuevo
             return RELAY_DATA;
         } else {
-            // Error fatal
             perror("relay_data_read: recv error");
             return ERROR;
         }
@@ -638,9 +630,7 @@ static socks5_states relay_data_write(struct selector_key * key) {
     buffer * source_buffer;
     bool log_transferred_bytes = false;
 
-    // Determinar a dónde va el evento
     if (key->fd == client->destination_socket) {
-        // Escribir al destino desde el buffer
         if (client->raw_buffer_client_to_dest == NULL) {
             fprintf(stderr, "relay_data_write: raw_buffer_client_to_dest is NULL\n");
             return ERROR;
@@ -649,7 +639,6 @@ static socks5_states relay_data_write(struct selector_key * key) {
         source_buffer = &client->client_to_dest_buffer;
         log_transferred_bytes = true;
     } else if (key->fd == client->client_socket) {
-        // Escribir al cliente desde el buffer
         if (client->raw_buffer_dest_to_client == NULL) {
             fprintf(stderr, "relay_data_write: raw_buffer_dest_to_client is NULL\n");
             return ERROR;
@@ -673,21 +662,16 @@ static socks5_states relay_data_write(struct selector_key * key) {
         } else if (n == 0) {
             return DONE;
         } else {
-            // Error en send
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                // El socket no está listo para escribir, esperar próximo evento
                 return RELAY_DATA;
             } else if (errno == EINTR) {
-                // Interrumpido por señal, intentar de nuevo
                 return RELAY_DATA;
             } else {
-                // Error fatal
                 perror("relay_data_write: send error");
                 return ERROR;
             }
         }
     }
-    // Si el buffer está vacío, deshabilitar interés de escritura
     if (!buffer_can_read(source_buffer)) {
         if (selector_set_interest(key->s, fd, OP_READ) != SELECTOR_SUCCESS) {
             fprintf(stderr, "relay_data_write: error deshabilitando OP_WRITE en fd %d\n", fd);
@@ -722,7 +706,6 @@ static socks5_states try_next_address(struct selector_key * key) {
         client->resolved_addr_current = NULL;
     }
 
-    // If we reach here, it means all addresses have been tried and failed and errno was set by the last connect attempt.
     socks5_reply reply_code = errno_to_socks5_reply(errno);
 
     if (generate_request_response(&client->write_buffer, reply_code, ATYP_IPV4, "0.0.0.0", 0) == -1) {

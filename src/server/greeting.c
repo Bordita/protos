@@ -6,7 +6,7 @@
 #include "../shared/includes/buffer.h"
 #include "includes/socks5.h"
 #include "../shared/includes/auth.h"
-// Actions for the greeting parser 
+
 static void act_version(struct parser_event *ret, const uint8_t c) {
     ret->type = GREETING_EVENT_VERSION_OK;
     ret->data[0] = c;
@@ -59,7 +59,7 @@ static const struct parser_state_transition *greeting_states[] = {
     greeting_transitions_VERSION,
     greeting_transitions_NMETHODS,
     greeting_transitions_METHODS,
-    NULL, // GREETING_DONE 
+    NULL, 
     greeting_transitions_ERROR
 };
 
@@ -67,7 +67,7 @@ static const size_t greeting_states_n[] = {
     sizeof(greeting_transitions_VERSION)/sizeof(greeting_transitions_VERSION[0]),
     sizeof(greeting_transitions_NMETHODS)/sizeof(greeting_transitions_NMETHODS[0]),
     sizeof(greeting_transitions_METHODS)/sizeof(greeting_transitions_METHODS[0]),
-    0, // GREETING_DONE
+    0,
     sizeof(greeting_transitions_ERROR)/sizeof(greeting_transitions_ERROR[0])
 };
 
